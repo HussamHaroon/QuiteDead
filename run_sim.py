@@ -25,6 +25,8 @@ def main():
     ap.add_argument("--screenshot", default=None, help="save a frame and exit (with --view)")
     ap.add_argument("--frames", type=int, default=240, help="frames to run before screenshot")
     ap.add_argument("--determinism", action="store_true")
+    ap.add_argument("--brain", choices=["scripted", "random"], default="scripted",
+                    help="random = uniform-random brains for BOTH species (D1 floor)")
     ap.add_argument("--levels", default=None, help="levels YAML path")
     ap.add_argument("--level", type=int, default=None, help="level index to play")
     ap.add_argument("--save-events", default=None, help="write event log JSONL here")
@@ -32,6 +34,9 @@ def main():
     args = ap.parse_args()
 
     overrides = {"seed": args.seed, "n_survivors": args.survivors, "n_zombies": args.zombies}
+    if args.brain == "random":
+        overrides["brain_survivors"] = "random"
+        overrides["brain_zombies"] = "random"
     cfg = Config.load(args.config, overrides)
 
     level = None
@@ -51,8 +56,11 @@ def main():
         return
 
     if args.determinism:
-        a = World(Config.load(args.config, overrides))
-        b = World(Config.load(args.config, overrides))
+        # use the same merged cfg + level as the headless path, so the check
+        # covers the scenario the user actually asked for (incl. --seed and
+        # --survivors when a level is selected)
+        a = World(cfg, level=level)
+        b = World(cfg, level=level)
         t0 = time.time()
         a.run(args.ticks)
         b.run(args.ticks)

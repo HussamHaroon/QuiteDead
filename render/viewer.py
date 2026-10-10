@@ -99,8 +99,19 @@ def _draw_vision_cone(surface, world, agent):
             d += step
         pts.append(_to_px(agent.x + dx * d, agent.y + dy * d))
     if len(pts) > 2:
-        draw.polygon(surface, (255, 230, 120, 40), pts)
-        draw.polygon(surface, (255, 230, 120, 90), pts, 1)
+        # pygame.draw ignores the color's alpha component on surfaces without
+        # per-pixel alpha (the display surface) — render the translucent cone
+        # into a tight SRCALPHA patch and blit that instead
+        xs = [p[0] for p in pts]
+        ys = [p[1] for p in pts]
+        bx, by = int(min(xs)) - 2, int(min(ys)) - 2
+        bw, bh = int(max(xs)) - bx + 4, int(max(ys)) - by + 4
+        if bw > 0 and bh > 0:
+            patch = pygame.Surface((bw, bh), pygame.SRCALPHA)
+            shifted = [(x - bx, y - by) for x, y in pts]
+            draw.polygon(patch, (255, 230, 120, 40), shifted)
+            draw.polygon(patch, (255, 230, 120, 90), shifted, 1)
+            surface.blit(patch, (bx, by))
 
 
 def _draw_noise(surface, world):
@@ -155,6 +166,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
         win_reason = None
         decals.clear()
         item_flash.clear()
+        dying.clear()
         scanned_events = 0
 
     overlay = pygame.Surface((m_px, m_px), pygame.SRCALPHA)
@@ -325,15 +337,17 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
             if s.alive:
                 moving = s.vel != (0.0, 0.0) or s.path is not None
                 img = bank.survivor(s.heading, moving, anim_frame, skin=s.skin, cache=rot_cache)
-                r = img.get_rect(center=_to_px(s.x, s.y))
-                screen.blit(img, r)
-                if s.infected:
-                    pygame.draw.circle(screen, (90, 230, 90), r.center, int(TILE * 0.7), 1)
+                if img is not None:  # TLS bank returns None if a sheet is missing
+                    r = img.get_rect(center=_to_px(s.x, s.y))
+                    screen.blit(img, r)
+                    if s.infected:
+                        pygame.draw.circle(screen, (90, 230, 90), r.center, int(TILE * 0.7), 1)
         for z in world.zombies:
             if z.alive:
                 moving = z.vel != (0.0, 0.0)
                 img = bank.zombie(z.id % 3, z.heading, moving, anim_frame, cache=rot_cache)
-                screen.blit(img, img.get_rect(center=_to_px(z.x, z.y)))
+                if img is not None:
+                    screen.blit(img, img.get_rect(center=_to_px(z.x, z.y)))
 
         if selected is not None and selected.alive:
             px, py = _to_px(selected.x, selected.y)
