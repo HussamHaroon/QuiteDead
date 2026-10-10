@@ -38,9 +38,12 @@ def main():
     if args.levels is not None and args.level is not None:
         from zombie_sim.core.levels import load_levels
         level = load_levels(args.levels)[args.level]
-        cfg = Config(**{**cfg.to_dict(), "width": level.map.w, "height": level.map.h,
-                        "n_zombies": level.n_zombies,
-                        "n_supply_outdoor": 0, "supply_per_building": 0.0})
+        overrides = {"width": level.map.w, "height": level.map.h,
+                     "n_zombies": level.n_zombies,
+                     "n_supply_outdoor": 0, "supply_per_building": 0.0}
+        if level.reanimation_enabled is not None:
+            overrides["reanimation_enabled"] = level.reanimation_enabled
+        cfg = Config(**{**cfg.to_dict(), **overrides})
 
     if args.view:
         from render.viewer import run_viewer
@@ -60,7 +63,7 @@ def main():
               f"({args.ticks} ticks x2 in {time.time() - t0:.1f}s)")
         return
 
-    world = World(cfg)
+    world = World(cfg, level=level)
     print(f"QuiteDead | seed {world.seed} | {cfg.width}x{cfg.height} map | "
           f"{cfg.n_survivors} survivors, {cfg.n_zombies} initial zombies")
     t0 = time.time()
@@ -74,6 +77,8 @@ def main():
     print(f"final: survivors {surv} | infected {inf} | zombies {zomb}")
     print(f"loot collected: {world.log.count('loot')} | bites: {world.log.count('bite')} "
           f"| turns: {world.log.count('turn')}")
+    print(f"deposits: {world.log.count('deposit')} ({world.stockpile} items stockpiled) "
+          f"| shots: {world.log.count('shot')} ({world.log.count('kill')} kills)")
     print(f"deaths by cause: {deaths or 'none'}")
     if args.save_events:
         world.log.save(args.save_events)

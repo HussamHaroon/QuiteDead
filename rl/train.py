@@ -232,6 +232,8 @@ def main():
                     cur_level += 1
                     recent_surv.clear()   # keep the deque (a plain-list rebind
                                           # would silently unbound the window)
+                    recent_prog.clear()   # stale wins from the old level must not
+                                          # chain-advance the next one
                     for env in envs:
                         env.next_level = levels[cur_level]
                     print(f"*** ADVANCING to Level {cur_level + 1}: "
