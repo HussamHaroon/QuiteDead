@@ -13,7 +13,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ppo import ActorCritic                     # noqa: E402
-from env import SurvivorEnv, OBS_DIM, ACT_DIM, obs_for, apply_action  # noqa: E402
+from env import (SurvivorEnv, OBS_DIM, ACT_DIM, obs_for, apply_action,
+                 auto_consume, update_senses)  # noqa: E402
 
 import pygame                                   # noqa: E402
 from render.viewer import (_prerender_map, _to_px,
@@ -49,14 +50,14 @@ def main():
 
     os.environ.setdefault("SDL_VIDEODRIVER", "")
     pygame.init()
-    m_px = args.size * TILE
+    m_px = env.world.game_map.w * TILE   # authored levels resize the world
     screen = pygame.display.set_mode((m_px, m_px + HUD_H))
     pygame.display.set_caption(f"QuiteDead — trained policy ({args.ckpt})")
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("consolas", 15)
 
-    bank = load_bank()
-    background = _prerender_map(env.world)
+    bank = load_bank(level.theme if level is not None else None)
+    background = _prerender_map(env.world, getattr(bank, "map_tiles", None))
     rot_cache = {}
 
     running = True
@@ -74,10 +75,12 @@ def main():
         for s in w.survivors:
             if s.alive and s.id in acts:
                 apply_action(w, s, acts[s.id])
+        auto_consume(w)
         w.step()
+        update_senses(w)
         if w.counts()[0] == 0:
             env.reset()
-            background = _prerender_map(env.world)
+            background = _prerender_map(env.world, getattr(bank, "map_tiles", None))
 
         screen.fill((16, 16, 20))
         screen.blit(background, (0, 0))

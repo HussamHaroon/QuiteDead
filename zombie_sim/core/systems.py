@@ -71,7 +71,8 @@ def loot_tick(world):
     for sup in world.supplies.values():
         if sup.taken:
             continue
-        for s in world.spatial_s.query(sup.x, sup.y, 0.7):
+        # query radius must over-approximate the accept radius (0.7416)
+        for s in world.spatial_s.query(sup.x, sup.y, 0.8):
             if s.alive and s.kind == "survivor" \
                     and (s.x - sup.x) ** 2 + (s.y - sup.y) ** 2 < 0.55:
                 if sup.kind == "gun":

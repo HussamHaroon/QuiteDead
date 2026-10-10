@@ -248,7 +248,13 @@ class World:
         if not every or self.t == 0 or self.t % every != 0:
             return
         for _ in range(self.cfg.reinforce_count):
-            x, y = self._rand_open_tile()
+            for _try in range(60):
+                x, y = self._rand_open_tile()
+                if self.safehouse is not None:
+                    x0, y0, sw, sh = self.safehouse
+                    if x0 <= int(x) < x0 + sw and y0 <= int(y) < y0 + sh:
+                        continue  # never materialize a zombie inside the base
+                break
             self._add_zombie(x, y)
             self.log.add(self.t, "reinforce", x=round(x, 1), y=round(y, 1))
 

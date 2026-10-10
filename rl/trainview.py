@@ -20,7 +20,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ppo import ActorCritic                      # noqa: E402
-from env import SurvivorEnv, OBS_DIM, ACT_DIM, obs_for, apply_action  # noqa: E402
+from env import (SurvivorEnv, OBS_DIM, ACT_DIM, obs_for, apply_action,
+                 auto_consume, update_senses)  # noqa: E402
 from render.viewer import (_prerender_map, _to_px,               # noqa: E402
                            _draw_vision_cone, TILE, HUD_H, SUPPLY_COLORS)
 from render import sprites as sprites_bank        # noqa: E402
@@ -40,16 +41,21 @@ def main():
     policy = ActorCritic(OBS_DIM, ACT_DIM)
     ckpt_path = os.path.join(args.run_dir, "policy.pt")
     waited = 0.0
-    while not os.path.exists(ckpt_path):
-        if waited == 0.0:
-            print(f"waiting for the first checkpoint in {args.run_dir} ...", flush=True)
-        time.sleep(2.0)
-        waited += 2.0
-        if waited > 180:
-            raise SystemExit(f"no checkpoint appeared at {ckpt_path}")
-    policy.load_state_dict(torch.load(ckpt_path, map_location="cpu"))
+    while True:
+        try:
+            policy.load_state_dict(torch.load(ckpt_path, map_location="cpu"))
+            break
+        except (FileNotFoundError, RuntimeError):
+            if waited == 0.0:
+                print(f"waiting for the first readable checkpoint in {args.run_dir} ...",
+                      flush=True)
+            time.sleep(1.0)
+            waited += 1.0
+            if waited > 180:
+                raise SystemExit(f"no checkpoint appeared at {ckpt_path}")
     policy.eval()
     loaded_at = os.path.getmtime(ckpt_path)
+    train_upd = "?"
 
     levels = None
     if args.levels:
@@ -96,7 +102,9 @@ def main():
                 if s.alive:
                     a, _, _ = policy.act(obs_for(w, s)[None], deterministic=True)
                     apply_action(w, s, int(a[0]))
+            auto_consume(w)
             w.step()
+            update_senses(w)
             loot_now = w.log.count("loot")
 
             if w.counts()[0] == 0 or w.t >= env.horizon:
@@ -124,12 +132,19 @@ def main():
                 if os.path.getmtime(ckpt_path) != loaded_at:
                     policy.load_state_dict(torch.load(ckpt_path, map_location="cpu"))
                     loaded_at = os.path.getmtime(ckpt_path)
+                    # pull the trainer's update counter for the GEN display
+                    try:
+                        with open(os.path.join(args.run_dir, "metrics.csv"),
+                                  encoding="utf-8") as mf:
+                            train_upd = mf.readlines()[-1].split(",")[0]
+                    except (OSError, IndexError):
+                        pass
             except (FileNotFoundError, RuntimeError):
                 pass
             episode += 1
             if levels:
-                env.next_level = levels[episode % len(levels)]
-            lvl = levels[episode % len(levels)] if levels else None
+                env.next_level = levels[(episode - 1) % len(levels)]
+            lvl = levels[(episode - 1) % len(levels)] if levels else None
             env.reset()
             if env.world.game_map.w * TILE != m_px:
                 m_px = env.world.game_map.w * TILE
@@ -257,13 +272,14 @@ def main():
                          f"hp {watcher.hp:.0f}  food {watcher.inventory['food']} "
                          f"water {watcher.inventory['water']}")
         stock = f"{w.stockpile}/{w.level.win_stock}" if w.level is not None else str(w.stockpile)
-        line = (f"LIVE POLICY  EP {episode}  [{lvl_name}]   SURV {surv}/{args.survivors}   "
-                f"ZOMB {zomb}   STOCK {stock}   tick {min(w.t, env.horizon)}/{env.horizon}")
+        line = (f"GEN {episode}  TRAIN-UPD {train_upd}  [{lvl_name}]   "
+                f"SURV {surv}/{args.survivors}   ZOMB {zomb}   STOCK {stock}   "
+                f"tick {min(w.t, env.horizon)}/{env.horizon}")
         screen.blit(font.render(line, True, (150, 220, 150)), (10, m_px + 10))
         screen.blit(font.render(state_txt, True, (200, 200, 160)), (10, m_px + 26))
-        screen.blit(font.render("network hot-reloads every episode",
+        screen.blit(font.render("GEN = episode (one lifetime)  |  network hot-reloads every episode",
                                 True, (120, 120, 130)),
-                    (m_px - 300, m_px + 26))
+                    (m_px - 460, m_px + 26))
         pygame.display.flip()
         clock.tick(60)
 

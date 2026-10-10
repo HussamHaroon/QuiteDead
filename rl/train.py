@@ -187,6 +187,11 @@ def main():
             qta = np.mean([s.get("quota", 0) for s in recent[-k:]])
         else:
             ep_rew = surv = sup = kil = trn = qta = 0.0
+        if levels is None:
+            # without a curriculum no controller consumes last_stats — clear it
+            # so metrics never re-report a stale episode
+            for e in envs:
+                e.last_stats = None
 
         sps = total_agent_steps / max(time.time() - t0, 1e-9)
 
@@ -207,7 +212,8 @@ def main():
                 mean_surv = sum(recent_surv) / len(recent_surv)
                 if mean_surv >= levels[cur_level].advance_at:
                     cur_level += 1
-                    recent_surv = []
+                    recent_surv.clear()   # keep the deque (a plain-list rebind
+                                          # would silently unbound the window)
                     for env in envs:
                         env.next_level = levels[cur_level]
                     print(f"*** ADVANCING to Level {cur_level + 1}: "

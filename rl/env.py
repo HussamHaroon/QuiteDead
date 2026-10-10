@@ -36,6 +36,50 @@ R_GUN = 1.0       # bonus for picking up a gun (loot event with kind == "gun")
 R_QUOTA = 6.0     # per living survivor when the level's stockpile quota is met
 
 
+def auto_consume(world):
+    """RL agents have no eat/drink/heal actions: consume at the same thresholds
+    the scripted brain uses. Never overrides a policy-chosen engage/attack."""
+    for s in world.survivors:
+        if not s.alive or s.action is not None:
+            continue
+        if s.hunger > 70 and s.inventory["food"] > 0:
+            s.action = ("eat", None)
+        elif s.thirst > 70 and s.inventory["water"] > 0:
+            s.action = ("drink", None)
+        elif s.hp < 45 and s.inventory["meds"] > 0:
+            s.action = ("heal", None)
+
+
+def update_senses(world):
+    """Keep the RL agents' memory/fear observation features alive (the scripted
+    brain writes these for its own agents; RL agents bypass it)."""
+    cfg = world.cfg
+    vr = cfg.vision_range
+    for s in world.survivors:
+        if not s.alive:
+            continue
+        vis = [z for z in world.spatial_z.query(s.x, s.y, vr)
+               if z.alive and can_see(world.game_map, s, z.x, z.y, vr, cfg.vision_fov_deg)]
+        if vis:
+            d = min(math.hypot(z.x - s.x, z.y - s.y) for z in vis)
+            s.fear = min(1.0, max(s.fear - 0.004, 1.0 - d / vr))
+            for z in vis:
+                s.memory_z[z.id] = (z.x, z.y, world.t)
+        else:
+            s.fear = max(0.0, s.fear - 0.004)
+        for sid, sup in world.supplies.items():
+            if sup.taken or sid in s.memory_sup:
+                continue
+            if (sup.x - s.x) ** 2 + (sup.y - s.y) ** 2 <= vr * vr \
+                    and can_see(world.game_map, s, sup.x, sup.y, vr, cfg.vision_fov_deg):
+                s.memory_sup[sid] = (sup.x, sup.y)
+        for sid in [k for k, (_, _, tk) in s.memory_z.items() if world.t - tk > 900]:
+            del s.memory_z[sid]
+        for sid in [k for k, xy in s.memory_sup.items()
+                    if sid in world.supplies and world.supplies[sid].taken]:
+            del s.memory_sup[sid]
+
+
 def obs_for(world, s):
     """Egocentric float32 observation for one survivor."""
     cfg, m = world.cfg, world.game_map
@@ -103,12 +147,13 @@ def apply_action(world, s, a):
         s.vel = (dx * cfg.survivor_run, dy * cfg.survivor_run)
         s.heading = math.atan2(dy, dx)
         s.action = None
-    else:  # action 9 "engage": attack the nearest visible zombie within gun/melee reach
-        # The core's survivor_attacks resolves shoot-vs-melee (gun+ammo+range+LOS ->
-        # shot, otherwise melee); the policy just chooses "engage".
+    else:  # action 9 "engage": attack the nearest visible zombie the survivor
+        # can actually fight — gun range when armed, melee reach when not
+        # (an unarmed whiff at 6 tiles would lock the agent in a wasted cooldown)
         vr = cfg.vision_range
         fov = cfg.vision_fov_deg
-        reach = max(getattr(cfg, "gun_range", 1.3), 1.3)
+        armed = getattr(s, "gun", False) and s.ammo > 0
+        reach = cfg.gun_range if armed else 1.45
         z, best = None, 1e18
         for o in world.spatial_z.query(s.x, s.y, reach):
             if o.alive and can_see(world.game_map, s, o.x, o.y, vr, fov):
@@ -174,48 +219,11 @@ class SurvivorEnv:
         for s in w.survivors:
             if s.alive:
                 apply_action(w, s, int(actions.get(s.id, 0)))
-
-        # RL agents have no eat/drink/heal actions: auto-consume at the same
-        # thresholds the scripted brain uses, so looted supplies matter.
-        for s in w.survivors:
-            if s.alive:
-                if s.hunger > 70 and s.inventory["food"] > 0:
-                    s.action = ("eat", None)
-                elif s.thirst > 70 and s.inventory["water"] > 0:
-                    s.action = ("drink", None)
-                elif s.hp < 45 and s.inventory["meds"] > 0:
-                    s.action = ("heal", None)
+        auto_consume(w)
 
         log_i0 = len(w.log.events)
         w.step()
-
-        # keep the RL agents' memory/fear features alive (the scripted brain
-        # writes these for its agents; RL agents bypass it)
-        cfg = w.cfg
-        vr = cfg.vision_range
-        for s in w.survivors:
-            if not s.alive:
-                continue
-            vis = [z for z in w.spatial_z.query(s.x, s.y, vr)
-                   if z.alive and can_see(w.game_map, s, z.x, z.y, vr, cfg.vision_fov_deg)]
-            if vis:
-                d = min(math.hypot(z.x - s.x, z.y - s.y) for z in vis)
-                s.fear = min(1.0, max(s.fear - 0.004, 1.0 - d / vr))
-                for z in vis:
-                    s.memory_z[z.id] = (z.x, z.y, w.t)
-            else:
-                s.fear = max(0.0, s.fear - 0.004)
-            for sid, sup in w.supplies.items():
-                if sup.taken or sid in s.memory_sup:
-                    continue
-                if (sup.x - s.x) ** 2 + (sup.y - s.y) ** 2 <= vr * vr \
-                        and can_see(w.game_map, s, sup.x, sup.y, vr, cfg.vision_fov_deg):
-                    s.memory_sup[sid] = (sup.x, sup.y)
-            for sid in [k for k, (_, _, tk) in s.memory_z.items() if w.t - tk > 900]:
-                del s.memory_z[sid]
-            for sid in [k for k, xy in s.memory_sup.items()
-                        if sid in w.supplies and w.supplies[sid].taken]:
-                del s.memory_sup[sid]
+        update_senses(w)
 
         rew = {sid: R_STEP for sid in self._start_ids if w.agents_by_id[sid].alive}
         for s in w.survivors:
