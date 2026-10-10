@@ -1,0 +1,29 @@
+# QuiteDead default scenario — literature-anchored defaults, sweep-friendly
+seed: 42
+width: 64
+height: 64
+
+n_survivors: 60
+n_zombies: 3
+supply_per_building: 0.6
+n_supply_outdoor: 30
+
+vision_range: 8.0
+vision_fov_deg: 110.0
+
+survivor_walk: 0.10
+survivor_run: 0.17
+
+bite_infection_chance: 0.65
+incubation_ticks: 900
+reanimation_delay: 150
+reanimation_enabled: true
+
+zombie_walk: 0.055
+zombie_chase_speed: 0.115
+zombie_detect_chance: 0.65
+zombie_memory_ticks: 240
+zombie_hearing_radius: 9.0
+
+noise_decay: 0.92
+noise_hear_threshold: 6.0
