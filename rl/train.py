@@ -10,6 +10,7 @@ import json
 import os
 import sys
 import time
+from collections import deque
 
 import numpy as np
 import torch
@@ -118,6 +119,8 @@ def main():
     ap.add_argument("--ckpt-every", type=int, default=50)
     ap.add_argument("--levels", default=None,
                     help="YAML with authored levels -> performance-gated curriculum")
+    ap.add_argument("--init-from", default=None,
+                    help="policy checkpoint to warm-start from")
     args = ap.parse_args()
 
     torch.set_num_threads(max(1, os.cpu_count() // 2))
@@ -131,7 +134,7 @@ def main():
             for i in range(args.envs)]
     levels = None
     cur_level = 0
-    recent_surv = []
+    recent_surv = deque(maxlen=6)   # sliding window: recent performance, not lifetime
     episode_count = 0
     if args.levels:
         from zombie_sim.core.levels import load_levels
@@ -142,6 +145,9 @@ def main():
         env.reset()
 
     ppo = PPO(OBS_DIM, ACT_DIM, lr=args.lr, seed=args.seed)
+    if args.init_from:
+        ppo.net.load_state_dict(torch.load(args.init_from, map_location="cpu"))
+        print(f"warm-started policy from {args.init_from}", flush=True)
     policy = ppo.net
 
     csv_path = os.path.join(run_dir, "metrics.csv")
