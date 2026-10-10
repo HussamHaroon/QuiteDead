@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ppo import PPO, gae_per_trajectory
-from env import SurvivorEnv, OBS_DIM, ACT_DIM
+from env import SurvivorEnv, OBS_DIM, ACT_DIM, obs_for
 
 
 def rollout(envs, policy, steps_per_env, gamma, lam):
@@ -129,6 +129,10 @@ def main():
                     help="YAML with authored levels -> performance-gated curriculum")
     ap.add_argument("--init-from", default=None,
                     help="policy checkpoint to warm-start from")
+    ap.add_argument("--eval-every", type=int, default=100,
+                    help="run held-out evaluation every N updates (0 = off)")
+    ap.add_argument("--eval-eps", type=int, default=5,
+                    help="max eval episodes per pass (one per held-out level)")
     args = ap.parse_args()
 
     torch.set_num_threads(max(1, os.cpu_count() // 2))
@@ -163,6 +167,13 @@ def main():
     wr = csv.writer(csv_f)
     wr.writerow(["update", "agent_steps", "level", "r_step", "ep_rew", "surv_rate", "quota",
                  "supplies", "kills", "turns", "loss", "entropy", "clipfrac", "steps_per_s"])
+
+    eval_path = os.path.join(run_dir, "eval.csv")
+    eval_f = open(eval_path, "a", newline="", encoding="utf-8")
+    eval_wr = csv.writer(eval_f)
+    if os.path.getsize(eval_path) == 0:
+        eval_wr.writerow(["update", "level", "surv_rate", "quota", "loot",
+                          "ticks", "stockpile"])
 
     print(f"QuiteDead RL training | {args.envs} envs x {args.survivors} survivors "
           f"| map {args.size}x{args.size} | {args.zombies} zombies | -> {run_dir}",
@@ -238,6 +249,37 @@ def main():
             torch.save(policy.state_dict(), os.path.join(run_dir, "policy.pt"))
             torch.save(policy.state_dict(),
                        os.path.join(run_dir, f"ckpt_{upd:05d}.pt"))
+
+        # ---- held-out evaluation: the train/test split ------------------
+        # run the current policy on levels it NEVER trains on (everything
+        # except the gated curriculum level), deterministic, no learning.
+        # Train score up + eval flat = overfitting; both up = generalizing.
+        if args.eval_every and upd % args.eval_every == 0 and levels and len(levels) > 1:
+            for lvl in levels[1:]:
+                eenv = SurvivorEnv(base_seed=777 + lvl.idx, n_survivors=args.survivors,
+                                   n_zombies=lvl.n_zombies, size=lvl.map.w,
+                                   horizon=1500, level=lvl)
+                eenv.reset()
+                done = False
+                guard = 0
+                while not done and guard < 20000:
+                    guard += 1
+                    w_ = eenv.world
+                    acts = {}
+                    for s in w_.survivors:
+                        if s.alive:
+                            a, _, _ = policy.act(obs_for(w_, s)[None], deterministic=True)
+                            acts[s.id] = int(a[0])
+                    _, _, done, _ = eenv.step(acts)
+                if eenv.last_stats:
+                    st = eenv.last_stats
+                    surv_r = st["survivors"] / args.survivors
+                    eval_wr.writerow([upd, lvl.name, f"{surv_r:.3f}", st["quota"],
+                                      st["supplies"], st["ticks"], st["stockpile"]])
+                    eval_f.flush()
+                    print(f"  EVAL upd {upd} [{lvl.name}]: surv {surv_r:.2f} "
+                          f"quota {st['quota']} stock {st['stockpile']}/{lvl.win_stock} "
+                          f"loot {st['supplies']}", flush=True)
 
     torch.save(policy.state_dict(), os.path.join(run_dir, "policy.pt"))
     csv_f.close()
