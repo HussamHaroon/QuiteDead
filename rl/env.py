@@ -131,7 +131,10 @@ class SurvivorEnv:
         self.last_stats = None
 
     def reset(self):
-        lvl = self.next_level if self.next_level is not None else self.fixed_level
+        # priority: controller override > stay on current level > static level
+        lvl = self.next_level
+        if lvl is None:
+            lvl = self.current_level if self.current_level is not None else self.fixed_level
         self.next_level = None
         self.current_level = lvl
         seed = self.base_seed * 100000 + self.episode * 7919
