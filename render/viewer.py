@@ -23,45 +23,33 @@ SUPPLY_COLORS = {"food": (232, 146, 58), "water": (86, 156, 232), "meds": (226, 
 
 ASSET_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                          "assets", "sprites", "top-down-shooter", "PNG")
-SKINS = [
-    "Man Blue/manBlue_hold.png",
-    "Woman Green/womanGreen_hold.png",
-    "Survivor 1/survivor1_hold.png",
-    "Man Brown/manBrown_hold.png",
-    "Hitman 1/hitman1_hold.png",
-    "Soldier 1/soldier1_hold.png",
-]
-ZOMBIE_PNG = "Zombie 1/zoimbie1_hold.png"
+SUPPLY_COLORS = {"food": (232, 146, 58), "water": (86, 156, 232), "meds": (226, 88, 96)}
+
+try:
+    from .sprites import load_bank
+except ImportError:  # run as a plain script
+    from sprites import load_bank
 
 
-def _make_world(cfg):
+def _make_world(cfg, level=None):
     from zombie_sim.core.sim import World
-    return World(cfg)
+    return World(cfg, level=level)
 
 
-def _load_sprites():
-    fallback = pygame.image.load(os.path.join(ASSET_DIR, SKINS[0]))
-    size = (int(TILE * 1.3),) * 2
-    skins = []
-    for rel in SKINS:
-        try:
-            img = pygame.image.load(os.path.join(ASSET_DIR, rel))
-        except (FileNotFoundError, pygame.error):
-            img = fallback
-        skins.append(pygame.transform.smoothscale(img.convert_alpha(), size))
-    zombie = pygame.transform.smoothscale(
-        pygame.image.load(os.path.join(ASSET_DIR, ZOMBIE_PNG)).convert_alpha(), size)
-    return skins, zombie
-
-
-def _prerender_map(world):
+def _prerender_map(world, tiles=None):
     m = world.game_map
     surf = pygame.Surface((m.w * TILE, m.h * TILE))
     for y in range(m.h):
         for x in range(m.w):
             r = pygame.Rect(x * TILE, y * TILE, TILE, TILE)
-            pygame.draw.rect(surf, COLORS[m.tiles[y][x]], r)
-            if m.tiles[y][x] == 3:  # wall: bevel
+            t = m.tiles[y][x]
+            if tiles is not None and t in tiles:
+                surf.blit(tiles[t], r)
+                if t == 3:  # wall: top highlight for depth
+                    pygame.draw.line(surf, (90, 30, 40), r.topleft, (r.right - 1, r.top))
+                continue
+            pygame.draw.rect(surf, COLORS[t], r)
+            if t == 3:
                 pygame.draw.line(surf, (140, 140, 152), r.topleft, (r.right - 1, r.top))
                 pygame.draw.line(surf, (66, 66, 74), (r.left, r.bottom - 1), (r.right - 1, r.bottom - 1))
     return surf
@@ -115,7 +103,7 @@ def _draw_noise(surface, world):
                              (x * TILE, y * TILE, TILE, TILE))
 
 
-def run_viewer(cfg, screenshot=None, frames=240):
+def run_viewer(cfg, screenshot=None, frames=240, level=None):
     if screenshot:
         os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
     pygame.init()
@@ -125,9 +113,9 @@ def run_viewer(cfg, screenshot=None, frames=240):
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("consolas", 15)
 
-    world = _make_world(cfg)
-    skins, zombie_img = _load_sprites()
-    background = _prerender_map(world)
+    world = _make_world(cfg, level=level)
+    bank = load_bank()
+    background = _prerender_map(world, getattr(bank, "map_tiles", None))
     rot_cache = {}
     selected = next((s for s in world.survivors if s.alive), None)
     ticks_per_frame = 1
@@ -166,6 +154,13 @@ def run_viewer(cfg, screenshot=None, frames=240):
 
         screen.fill((16, 16, 20))
         screen.blit(background, (0, 0))
+
+        if level is not None:
+            for relpath, px, py in level.props:
+                img = bank.prop(relpath)
+                if img is not None:
+                    screen.blit(img, img.get_rect(center=((px + 0.5) * TILE, (py + 0.5) * TILE)))
+
         if show_noise:
             _draw_noise(overlay, world)
             screen.blit(overlay, (0, 0))
@@ -173,23 +168,30 @@ def run_viewer(cfg, screenshot=None, frames=240):
 
         for sup in world.supplies.values():
             if not sup.taken:
-                pygame.draw.circle(screen, SUPPLY_COLORS[sup.kind], _to_px(sup.x, sup.y), 3)
-                pygame.draw.circle(screen, (235, 235, 235), _to_px(sup.x, sup.y), 3, 1)
+                img = bank.pickup(sup.kind)
+                if img is not None:
+                    screen.blit(img, img.get_rect(center=_to_px(sup.x, sup.y)))
+                else:
+                    pygame.draw.circle(screen, SUPPLY_COLORS[sup.kind], _to_px(sup.x, sup.y), 3)
+                    pygame.draw.circle(screen, (235, 235, 235), _to_px(sup.x, sup.y), 3, 1)
 
         if show_cone and selected is not None and selected.alive:
             _draw_vision_cone(screen, world, selected)
 
+        anim_frame = pygame.time.get_ticks() // 90
         for s in world.survivors:
             if s.alive:
-                pos = _rotated(rot_cache, skins[s.skin % len(skins)], s.heading)
-                r = pos.get_rect(center=_to_px(s.x, s.y))
-                screen.blit(pos, r)
+                moving = s.vel != (0.0, 0.0) or s.path is not None
+                img = bank.survivor(s.heading, moving, anim_frame, skin=s.skin, cache=rot_cache)
+                r = img.get_rect(center=_to_px(s.x, s.y))
+                screen.blit(img, r)
                 if s.infected:
-                    pygame.draw.circle(screen, (90, 230, 90), r.center, int(TILE * 0.8), 1)
+                    pygame.draw.circle(screen, (90, 230, 90), r.center, int(TILE * 0.7), 1)
         for z in world.zombies:
             if z.alive:
-                pos = _rotated(rot_cache, zombie_img, z.heading)
-                screen.blit(pos, pos.get_rect(center=_to_px(z.x, z.y)))
+                moving = z.vel != (0.0, 0.0)
+                img = bank.zombie(z.id % 3, z.heading, moving, anim_frame, cache=rot_cache)
+                screen.blit(img, img.get_rect(center=_to_px(z.x, z.y)))
 
         if selected is not None and selected.alive:
             px, py = _to_px(selected.x, selected.y)
@@ -199,7 +201,8 @@ def run_viewer(cfg, screenshot=None, frames=240):
         surv, inf, zomb = world.counts()
         loot = world.log.count("loot")
         line1 = (f"SURV {surv:>3}   INFECTED {inf:>2}   ZOMBIES {zomb:>3}   "
-                 f"LOOT {loot:>3}   tick {world.t:>5}   x{ticks_per_frame if not paused else 0}")
+                 f"LOOT {loot:>3}   tick {world.t:>5}   x{ticks_per_frame if not paused else 0}"
+                 + (f"   [{level.name}]" if level is not None else ""))
         sel = ""
         if selected is not None:
             sel = (f"[{selected.id}] hp {selected.hp:.0f} hunger {selected.hunger:.0f} "

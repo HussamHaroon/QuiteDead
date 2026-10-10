@@ -16,8 +16,9 @@ from ppo import ActorCritic                     # noqa: E402
 from env import SurvivorEnv, OBS_DIM, ACT_DIM, obs_for, apply_action  # noqa: E402
 
 import pygame                                   # noqa: E402
-from render.viewer import (_load_sprites, _prerender_map, _rotated, _to_px,
-                           _draw_vision_cone, COLORS, TILE, HUD_H, SUPPLY_COLORS)
+from render.viewer import (_prerender_map, _to_px,
+                           _draw_vision_cone, TILE, HUD_H, SUPPLY_COLORS)
+from render.sprites import load_bank            # noqa: E402
 
 
 def main():
@@ -28,6 +29,8 @@ def main():
     ap.add_argument("--zombies", type=int, default=2)
     ap.add_argument("--seed", type=int, default=999)
     ap.add_argument("--det", action="store_true", help="deterministic policy")
+    ap.add_argument("--levels", default=None)
+    ap.add_argument("--level", type=int, default=None)
     args = ap.parse_args()
 
     torch.set_num_threads(2)
@@ -35,8 +38,13 @@ def main():
     policy.load_state_dict(torch.load(args.ckpt, map_location="cpu"))
     policy.eval()
 
+    level = None
+    if args.levels is not None and args.level is not None:
+        from zombie_sim.core.levels import load_levels
+        level = load_levels(args.levels)[args.level]
     env = SurvivorEnv(base_seed=args.seed, n_survivors=args.survivors,
-                      n_zombies=args.zombies, size=args.size, horizon=10 ** 9)
+                      n_zombies=args.zombies, size=args.size, horizon=10 ** 9,
+                      level=level)
     env.reset()
 
     os.environ.setdefault("SDL_VIDEODRIVER", "")
@@ -47,7 +55,7 @@ def main():
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("consolas", 15)
 
-    skins, zombie_img = _load_sprites()
+    bank = load_bank()
     background = _prerender_map(env.world)
     rot_cache = {}
 
@@ -75,21 +83,28 @@ def main():
         screen.blit(background, (0, 0))
         for sup in w.supplies.values():
             if not sup.taken:
-                pygame.draw.circle(screen, SUPPLY_COLORS[sup.kind], _to_px(sup.x, sup.y), 3)
+                img = bank.pickup(sup.kind)
+                if img is not None:
+                    screen.blit(img, img.get_rect(center=_to_px(sup.x, sup.y)))
+                else:
+                    pygame.draw.circle(screen, SUPPLY_COLORS[sup.kind], _to_px(sup.x, sup.y), 3)
         sel = next((s for s in w.survivors if s.alive), None)
         if sel is not None:
             _draw_vision_cone(screen, w, sel)
+        af = pygame.time.get_ticks() // 90
         for s in w.survivors:
             if s.alive:
-                pos = _rotated(rot_cache, skins[s.skin % len(skins)], s.heading)
-                screen.blit(pos, pos.get_rect(center=_to_px(s.x, s.y)))
+                moving = s.vel != (0.0, 0.0) or s.path is not None
+                img = bank.survivor(s.heading, moving, af, skin=s.skin, cache=rot_cache)
+                r = img.get_rect(center=_to_px(s.x, s.y))
+                screen.blit(img, r)
                 if s.infected:
-                    pygame.draw.circle(screen, (90, 230, 90),
-                                       pos.get_rect(center=_to_px(s.x, s.y)).center, 12, 1)
+                    pygame.draw.circle(screen, (90, 230, 90), r.center, 12, 1)
         for z in w.zombies:
             if z.alive:
-                pos = _rotated(rot_cache, zombie_img, z.heading)
-                screen.blit(pos, pos.get_rect(center=_to_px(z.x, z.y)))
+                moving = z.vel != (0.0, 0.0)
+                img = bank.zombie(z.id % 3, z.heading, moving, af, cache=rot_cache)
+                screen.blit(img, img.get_rect(center=_to_px(z.x, z.y)))
 
         pygame.draw.rect(screen, (24, 24, 30), (0, m_px, m_px, HUD_H))
         surv, inf, zomb = w.counts()
