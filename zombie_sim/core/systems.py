@@ -232,7 +232,7 @@ def reanimate_tick(world):
 def die(world, agent, cause):
     agent.alive = False
     world.log.add(world.t, "death", who=agent.id, kind=agent.kind, cause=cause,
-                  x=round(agent.x, 1), y=round(agent.y, 1))
+                  x=round(agent.x, 1), y=round(agent.y, 1), heading=agent.heading)
     if agent.kind == "survivor":
         world.corpses.append((world.t + world.cfg.reanimation_delay, agent.x, agent.y))
 

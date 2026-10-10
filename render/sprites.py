@@ -64,7 +64,30 @@ class TLSSprites:
                 # 1.5x so items actually read on a 48-tile map
                 self.pickups[key] = pygame.transform.scale_by(
                     pygame.image.load(p).convert_alpha(), 1.5)
+        self._load_death_sheets()
         self._load_map_tiles()
+
+    def _load_death_sheets(self):
+        """Death animations: nothing despawns — agents visibly collapse, then
+        the persistent stain takes over."""
+        self.zomb_death = {}   # (kind, dir) -> [frames]
+        for kind in ZOMBIE_KINDS:
+            for d, dirlabel in (("down", "Down"), ("up", "Up"),
+                                ("side", "Side"), ("sideleft", "Side-left")):
+                paths = sorted(glob.glob(os.path.join(
+                    self.base, "Enemies", kind, f"*_{dirlabel}_First-Death-Sheet*.png")))
+                if paths:
+                    frames = _frames_from_sheet(paths[0])
+                    self.zomb_death[(kind, d)] = [
+                        pygame.transform.scale_by(f, 2) for f in frames]
+        self.surv_death = {}   # dir -> [frames]
+        base = os.path.join(self.base, "Character", "Main", "Death")
+        for d in ("down", "up", "side", "sideleft"):
+            label = "side-left" if d == "sideleft" else d
+            paths = sorted(glob.glob(os.path.join(base, f"Character_{label}_death1-Sheet*.png")))
+            if paths and "_NoHands" not in paths[0]:
+                frames = _frames_from_sheet(paths[0])
+                self.surv_death[d] = [pygame.transform.scale_by(f, 2) for f in frames]
 
     def _load_map_tiles(self):
         """Crop ground/wall tiles from the level's themed tilesets, scaled 2x.

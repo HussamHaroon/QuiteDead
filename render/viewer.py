@@ -28,8 +28,10 @@ ASSET_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file_
                          "assets", "sprites", "top-down-shooter", "PNG")
 
 try:
+    from . import sprites as sprites_mod
     from .sprites import load_bank
 except ImportError:  # run as a plain script
+    import sprites as sprites_mod
     from sprites import load_bank
 
 
@@ -136,6 +138,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
     item_flash = []            # gunshot shockwaves [(x, y, real_ms)]
     scanned_events = 0         # how many log events the flash scanner has seen
     decals = []                # death stains — persist for the whole episode
+    dying = []                 # death animations in flight [(x,y,heading,kind,who,ms)]
     night_overlay = pygame.Surface((m_px, m_px), pygame.SRCALPHA)
     extinct = False
     extinct_at = 0
@@ -198,14 +201,18 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                 extinct_at = pygame.time.get_ticks()
 
         # gunshot shockwaves: every shot is loud — make the noise mechanic visible
-        # + persistent history: death stains (never despawn within an episode)
+        # + persistent history: death stains + death animations (never despawn)
         for e in world.log.events[scanned_events:]:
             if e["type"] == "shot":
                 item_flash.append((e["x"], e["y"], pygame.time.get_ticks()))
             elif e["type"] == "death":
                 decals.append((e["x"], e["y"], e.get("kind", "?")))
+                dying.append((e["x"], e["y"], e.get("heading", 0.0),
+                              e.get("kind", "?"), e.get("who", 0),
+                              pygame.time.get_ticks()))
         scanned_events = len(world.log.events)
         item_flash[:] = [f for f in item_flash if pygame.time.get_ticks() - f[2] < 450]
+        dying[:] = [d for d in dying if pygame.time.get_ticks() - d[5] < 500]
 
         screen.fill((16, 16, 20))
         screen.blit(background, (0, 0))
@@ -268,6 +275,19 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
         for sup in world.supplies.values():
             if sup.taken:
                 pygame.draw.circle(screen, (70, 70, 66), _to_px(sup.x, sup.y), 2, 1)
+
+        # death animations: agents collapse visibly instead of popping away
+        for dx_, dy_, head, kind, who, t0 in dying:
+            k = min(1.0, (pygame.time.get_ticks() - t0) / 480.0)
+            (dd,) = bank._dir_for(head)
+            if kind == "survivor":
+                dframes = bank.surv_death.get(dd)
+            else:
+                dframes = bank.zomb_death.get((sprites_mod.ZOMBIE_KINDS[who % 3], dd))
+            if dframes:
+                fi = min(int(k * len(dframes)), len(dframes) - 1)
+                img = dframes[fi]
+                screen.blit(img, img.get_rect(center=_to_px(dx_, dy_)))
 
         if show_noise:
             _draw_noise(overlay, world)

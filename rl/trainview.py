@@ -23,6 +23,7 @@ from ppo import ActorCritic                      # noqa: E402
 from env import SurvivorEnv, OBS_DIM, ACT_DIM, obs_for, apply_action  # noqa: E402
 from render.viewer import (_prerender_map, _to_px,               # noqa: E402
                            _draw_vision_cone, TILE, HUD_H, SUPPLY_COLORS)
+from render import sprites as sprites_bank        # noqa: E402
 from render.sprites import load_bank             # noqa: E402
 
 
@@ -74,6 +75,7 @@ def main():
     decals = []            # death stains — persist for the whole episode
     item_flash = []        # gunshot shockwaves
     scanned_events = 0
+    dying = []             # death animations in flight
     first_lvl = env.world.level
     bank = load_bank(first_lvl.theme if first_lvl is not None else None)
     last_theme = first_lvl.theme if first_lvl is not None else None
@@ -140,6 +142,7 @@ def main():
             ep_kills0 = env.world.log.count("kill")
             decals.clear()
             item_flash.clear()
+            dying.clear()
             scanned_events = 0
             banner = None
 
@@ -162,10 +165,14 @@ def main():
         for e in w.log.events[scanned_events:]:
             if e["type"] == "death":
                 decals.append((e["x"], e["y"], e.get("kind", "?")))
+                dying.append((e["x"], e["y"], e.get("heading", 0.0),
+                              e.get("kind", "?"), e.get("who", 0),
+                              pygame.time.get_ticks()))
             elif e["type"] == "shot":
                 item_flash.append((e["x"], e["y"], pygame.time.get_ticks()))
         scanned_events = len(w.log.events)
         item_flash[:] = [f for f in item_flash if pygame.time.get_ticks() - f[2] < 450]
+        dying[:] = [d for d in dying if pygame.time.get_ticks() - d[5] < 500]
         for dx_, dy_, kind in decals:
             col = (120, 22, 22) if kind == "survivor" else (70, 30, 30)
             pygame.draw.circle(screen, col, _to_px(dx_, dy_), 4)
@@ -173,6 +180,19 @@ def main():
         for sup in w.supplies.values():
             if sup.taken:
                 pygame.draw.circle(screen, (70, 70, 66), _to_px(sup.x, sup.y), 2, 1)
+
+        # death animations: agents collapse visibly instead of popping away
+        for dx_, dy_, head, kind, who, t0 in dying:
+            k = min(1.0, (pygame.time.get_ticks() - t0) / 480.0)
+            (d,) = bank._dir_for(head)
+            if kind == "survivor":
+                frames = bank.surv_death.get(d)
+            else:
+                frames = bank.zomb_death.get((sprites_bank.ZOMBIE_KINDS[who % 3], d))
+            if frames:
+                fi = min(int(k * len(frames)), len(frames) - 1)
+                img = frames[fi]
+                screen.blit(img, img.get_rect(center=_to_px(dx_, dy_)))
 
         # gunshot shockwaves
         for fx, fy, t0 in item_flash:
