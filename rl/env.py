@@ -34,6 +34,28 @@ R_SURVIVE = 4.0
 R_DEPOSIT = 3.0   # per item deposited in the safe house ("deposit" event, n items)
 R_GUN = 1.0       # bonus for picking up a gun (loot event with kind == "gun")
 R_QUOTA = 6.0     # per living survivor when the level's stockpile quota is met
+R_SHAPE = 0.1     # potential-based shaping coefficient (Ng et al. 1999: F = g*phi' - phi
+                  # preserves the optimal policy while giving a dense gradient)
+PBRS_GAMMA = 0.995  # must match the PPO discount
+
+
+def _potential(world, s):
+    """Negative distance to the current objective: the safe house when carrying
+    supplies, else the nearest KNOWN supply (agent-private memory only)."""
+    carried = sum(s.inventory[k] for k in ("food", "water", "meds"))
+    if carried >= 3 or (carried > 0 and not s.memory_sup):
+        if world.safehouse is not None:
+            x0, y0, sw, sh = world.safehouse
+            tx, ty = x0 + sw / 2.0, y0 + sh / 2.0
+        else:
+            return 0.0
+    else:
+        known = [xy for sid, xy in s.memory_sup.items()
+                 if sid in world.supplies and not world.supplies[sid].taken]
+        if not known:
+            return 0.0
+        tx, ty = min(known, key=lambda p: (p[0] - s.x) ** 2 + (p[1] - s.y) ** 2)
+    return -math.hypot(tx - s.x, ty - s.y)
 
 
 def auto_consume(world):
@@ -222,6 +244,7 @@ class SurvivorEnv:
         auto_consume(w)
 
         log_i0 = len(w.log.events)
+        phi_before = {s.id: _potential(w, s) for s in w.survivors if s.alive}
         w.step()
         update_senses(w)
 
@@ -250,6 +273,14 @@ class SurvivorEnv:
                 rew[e["who"]] = rew.get(e["who"], 0.0) + R_DEATH
 
         survivors_alive, _, _ = w.counts()
+
+        # dense shaping: reward every tick that closes in on the objective
+        for s in w.survivors:
+            if s.alive and s.id in phi_before:
+                phi_after = _potential(w, s)
+                rew[s.id] = rew.get(s.id, 0.0) + \
+                    R_SHAPE * (PBRS_GAMMA * phi_after - phi_before[s.id])
+
         done = survivors_alive == 0 or w.t >= self.horizon
         if done:
             self.pending_reset = True
