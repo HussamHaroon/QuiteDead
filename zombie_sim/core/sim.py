@@ -236,7 +236,7 @@ class World:
             if s.alive and not s.rl:
                 utility.think(self, s)
         for z in self.zombies:
-            if z.alive:
+            if z.alive and not z.rl:
                 fsm.think(self, z)
 
         move_agents(self)

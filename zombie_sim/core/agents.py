@@ -52,11 +52,12 @@ class Survivor(Agent):
 
 class Zombie(Agent):
     __slots__ = ("state", "target", "last_known", "last_seen", "attack_cd", "hp",
-                 "inv_since")
+                 "inv_since", "rl")
 
     def __init__(self, aid, x, y, hp=100.0):
         super().__init__(aid, "zombie", x, y)
         self.hp = hp
+        self.rl = False  # True when an RL policy drives this zombie instead of the FSM
         self.state = "wander"
         self.target = None
         self.last_known = None

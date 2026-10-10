@@ -136,6 +136,7 @@ def combat_tick(world):
                 target.hp -= cfg.zombie_damage
                 if target.hp <= 0:
                     die(world, target, "zombie")
+                    world.log.add(world.t, "killz", attacker=z.id, who=target.id)
 
 
 MELEE_REACH = 1.45  # cornered-fight orders come from a 1.4-radius query
