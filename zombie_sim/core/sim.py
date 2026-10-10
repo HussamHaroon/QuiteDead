@@ -1,9 +1,9 @@
 """World: owns state and the deterministic tick loop.
 
 Order per tick: spatial hash rebuild -> noise decay -> brains think
-(survivors then zombies, id order) -> movement -> looting -> combat ->
-infection -> needs -> reanimation. One shared RNG, stable iteration order:
-same seed + same config => identical run.
+(survivors then zombies, id order) -> movement -> looting -> safe-house
+deposits -> combat -> infection -> needs -> reanimation. One shared RNG,
+stable iteration order: same seed + same config => identical run.
 """
 import itertools
 import random
@@ -14,9 +14,24 @@ from .events import EventLog
 from .grid import generate_map, ROAD, DOOR, FLOOR, GRASS, WALKABLE
 from .noise import NoiseField
 from .spatial import SpatialHash
-from .systems import (move_agents, loot_tick, combat_tick, survivor_attacks,
-                      infection_tick, needs_tick, reanimate_tick)
+from .systems import (move_agents, loot_tick, deposit_tick, combat_tick,
+                      survivor_attacks, infection_tick, needs_tick,
+                      reanimate_tick)
 from .brains import fsm, utility
+
+
+def _nearest_building(buildings, points):
+    """Building rect (x, y, w, h) whose center is closest to the points' centroid."""
+    if not buildings or not points:
+        return None
+    cx = sum(p[0] for p in points) / len(points)
+    cy = sum(p[1] for p in points) / len(points)
+    best, best_d = None, None
+    for b in buildings:
+        d = (b[0] + b[2] / 2.0 - cx) ** 2 + (b[1] + b[3] / 2.0 - cy) ** 2
+        if best_d is None or d < best_d:
+            best, best_d = (b[0], b[1], b[2], b[3]), d
+    return best
 
 
 class World:
@@ -37,7 +52,10 @@ class World:
         self.agents_by_id = {}
         self.corpses = []  # (due_tick, x, y)
         self.history = []  # (tick, survivors, infected, zombies) every 30 ticks
+        self.stockpile = 0  # food/water/meds deposited in the safe house
+        self.safehouse = None  # (x, y, w, h) tile rect, resolved in _resolve_safehouse
 
+        self._resolve_safehouse()
         self._spawn_supplies()
         self._spawn_agents()
 
@@ -76,25 +94,91 @@ class World:
         for _ in range(self.cfg.n_supply_outdoor):
             x, y = self._rand_open_tile(road)
             self._add_supply(x, y, self.rng.choice(("food", "water")))
+        # a rare few guns (mostly inside buildings) and some ammo crates outside —
+        # no survivor spawns armed; finding them is part of the loop. Two gun +
+        # ammo pairs sit in the safe house (the camp armory) so a couple of
+        # survivors actually get armed early and the shooting loop can start.
+        placed = 0
+        if self.safehouse is not None:
+            x0, y0, sw, sh = self.safehouse
+            if sw > 2 and sh > 2:
+                for _pair in range(2):
+                    tx = self.rng.randrange(x0 + 1, x0 + sw - 1)
+                    ty = self.rng.randrange(y0 + 1, y0 + sh - 1)
+                    if self.game_map.blocked(tx, ty):
+                        continue
+                    self._add_supply(tx + 0.5, ty + 0.5, "gun")
+                    self._add_supply(tx + 0.5, ty + 0.5, "ammo")
+                    placed += 1
+        for _ in range(max(0, self.cfg.n_guns_spawn - placed)):
+            x, y = self._rand_open_tile((FLOOR, ROAD))
+            self._add_supply(x, y, "gun")
+        for _ in range(max(0, self.cfg.n_ammo_spawn - placed)):
+            x, y = self._rand_open_tile(road)
+            self._add_supply(x, y, "ammo")
 
     def _add_supply(self, x, y, kind):
         sid = self.next_id()
         self.supplies[sid] = Supply(sid, x, y, kind)
 
+    # -------------------------------------------------------------- safe house
+    def _resolve_safehouse(self):
+        """Level-designated safe house, else the building nearest the intended
+        survivor spawn centroid. Falls back to None when the map has no buildings."""
+        rect = getattr(self.level, "safehouse", None) if self.level is not None else None
+        if rect is None and self.level is not None and self.level.survivor_spawns:
+            rect = _nearest_building(self.game_map.buildings,
+                                     [(x + 0.5, y + 0.5) for x, y in self.level.survivor_spawns])
+        if rect is None:
+            centers = [self._rand_open_tile((ROAD, DOOR)) for _ in range(3)]
+            rect = _nearest_building(self.game_map.buildings, centers)
+        self.safehouse = rect
+
+    def in_safehouse(self, agent):
+        """True when the agent's tile lies inside the safe house rect."""
+        r = self.safehouse
+        if r is None:
+            return False
+        x0, y0, w, h = r
+        return x0 <= int(agent.x) < x0 + w and y0 <= int(agent.y) < y0 + h
+
+    def _safehouse_center(self):
+        x0, y0, w, h = self.safehouse
+        return x0 + w / 2.0, y0 + h / 2.0
+
+    def _safehouse_spot(self, cx, cy):
+        """Random interior tile of the safe house (center / open tile as fallbacks)."""
+        x0, y0, w, h = self.safehouse
+        if w > 2 and h > 2:
+            for _ in range(50):
+                tx = self.rng.randrange(x0 + 1, x0 + w - 1)
+                ty = self.rng.randrange(y0 + 1, y0 + h - 1)
+                if not self.game_map.blocked(tx, ty):
+                    return tx + 0.5, ty + 0.5
+        if not self.game_map.blocked(int(cx), int(cy)):
+            return cx, cy
+        return self._rand_open_tile((ROAD, DOOR))
+
     def _spawn_agents(self):
-        # survivors start clustered around a few road intersections (or level spots)
+        # survivors start inside/near the safe house (mission loop home base);
+        # zombies spawn scattered (or at authored level spots), never near it
         road = (ROAD, DOOR)
-        if self.level is not None and self.level.survivor_spawns:
+        if self.safehouse is not None:
+            centers = [self._safehouse_center()]
+        elif self.level is not None and self.level.survivor_spawns:
             centers = [(x + 0.5, y + 0.5) for x, y in self.level.survivor_spawns]
         else:
             centers = [self._rand_open_tile(road) for _ in range(3)]
         skins = itertools.cycle(range(6))
         for i in range(self.cfg.n_survivors):
             cx, cy = centers[i % len(centers)]
-            x = min(max(cx + self.rng.gauss(0, 2.5), 1.5), self.cfg.width - 1.5)
-            y = min(max(cy + self.rng.gauss(0, 2.5), 1.5), self.cfg.height - 1.5)
-            if self.game_map.blocked(int(x), int(y)):
-                x, y = self._rand_open_tile(road)
+            if self.safehouse is not None:
+                x, y = self._safehouse_spot(cx, cy)
+            else:
+                x = min(max(cx + self.rng.gauss(0, 2.5), 1.5), self.cfg.width - 1.5)
+                y = min(max(cy + self.rng.gauss(0, 2.5), 1.5), self.cfg.height - 1.5)
+                if self.game_map.blocked(int(x), int(y)):
+                    x, y = self._rand_open_tile(road)
             s = Survivor(self.next_id(), x, y, hp=self.cfg.survivor_hp)
             s.skin = next(skins)
             self.survivors.append(s)
@@ -145,6 +229,7 @@ class World:
 
         move_agents(self)
         loot_tick(self)
+        deposit_tick(self)
         combat_tick(self)
         survivor_attacks(self)
         infection_tick(self)
@@ -167,4 +252,5 @@ class World:
             if report_every and self.t % report_every == 0:
                 surv, inf, zomb = self.counts()
                 print(f"  tick {self.t:>6} | survivors {surv:>3} | infected {inf:>2} "
-                      f"| zombies {zomb:>3} | loot {self.log.count('loot'):>3}")
+                      f"| zombies {zomb:>3} | loot {self.log.count('loot'):>3} "
+                      f"| stock {self.stockpile:>3} | shots {self.log.count('shot'):>3}")

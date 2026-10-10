@@ -10,7 +10,8 @@ class Config:
     width: int = 64
     height: int = 64
     seed: int = 42
-    win_ticks: int = 2400                 # survive this long (one day cycle) to win
+    day_ticks: int = 1200                 # one in-game day; deadlines are days * day_ticks
+    win_ticks: int = 2400                 # deprecated: procedural-map survival target only
     # population
     n_survivors: int = 60
     n_zombies: int = 3

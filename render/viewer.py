@@ -136,16 +136,18 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
     extinct = False
     extinct_at = 0
     won = False
-    win_reason = None  # "stock" (stockpile filled) or "survive" (win_ticks held)
+    win_reason = None  # "stock" (stockpile filled) or "survive" (procedural target held)
+    quota_missed = False
 
     def _new_outbreak():
-        nonlocal world, background, selected, extinct, won, win_reason
+        nonlocal world, background, selected, extinct, won, win_reason, quota_missed
         world = _make_world(cfg, level=level)
         background = _prerender_map(world, getattr(bank, "map_tiles", None))
         selected = next((s for s in world.survivors if s.alive), None)
         extinct = False
         won = False
         win_reason = None
+        quota_missed = False
 
     overlay = pygame.Surface((m_px, m_px), pygame.SRCALPHA)
     done = False
@@ -167,7 +169,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                     show_noise = not show_noise
                 elif ev.key == pygame.K_t:
                     show_daynight = not show_daynight
-                elif ev.key == pygame.K_r and (extinct or won):
+                elif ev.key == pygame.K_r and (extinct or won or quota_missed):
                     _new_outbreak()
                 elif ev.key == pygame.K_TAB:
                     alive = [s for s in world.survivors if s.alive]
@@ -175,11 +177,12 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                         idx = (alive.index(selected) + 1) % len(alive) if selected in alive else 0
                         selected = alive[idx]
 
-        if not paused and not extinct and not won:
+        if not paused and not extinct and not won and not quota_missed:
             for _ in range(ticks_per_frame):
                 world.step()
             frame += ticks_per_frame
             win_stock = level.win_stock if level is not None else None
+            deadline = level.days * cfg.day_ticks if level is not None else cfg.win_ticks
             if world.counts()[0] == 0:
                 extinct = True
                 extinct_at = pygame.time.get_ticks()
@@ -187,7 +190,11 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                 won = True
                 win_reason = "stock"
                 extinct_at = pygame.time.get_ticks()
-            elif world.t >= cfg.win_ticks:
+            elif level is not None and world.t >= deadline:
+                # the days ran out with the quota unmet — the camp starves
+                quota_missed = True
+                extinct_at = pygame.time.get_ticks()
+            elif level is None and world.t >= cfg.win_ticks:
                 won = True
                 win_reason = "survive"
                 extinct_at = pygame.time.get_ticks()
@@ -258,7 +265,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
             px, py = _to_px(selected.x, selected.y)
             pygame.draw.circle(screen, (255, 255, 255), (int(px), int(py)), TILE, 1)
 
-        if extinct or won:
+        if extinct or won or quota_missed:
             box = pygame.Surface((m_px, 90), pygame.SRCALPHA)
             box.fill((10, 10, 14, 215))
             screen.blit(box, (0, m_px // 2 - 45))
@@ -276,6 +283,10 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                                 True, (120, 235, 120))
                 t2 = font.render(f"they held out for {cfg.win_ticks} ticks  -  R = new outbreak, ESC = quit",
                                  True, (220, 220, 220))
+            elif quota_missed:
+                t1 = big.render("QUOTA MISSED — the camp starves", True, (235, 150, 70))
+                t2 = font.render(f"{world.stockpile}/{level.win_stock} stockpiled in {level.days} days  -  "
+                                 f"R = new outbreak, ESC = quit", True, (220, 220, 220))
             else:
                 t1 = big.render("ALL SURVIVORS LOST", True, (235, 90, 90))
                 t2 = font.render("the outbreak is over  -  press R for a new outbreak, ESC to quit",
@@ -287,9 +298,14 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
         surv, inf, zomb = world.counts()
         loot = world.log.count("loot")
         win_stock = level.win_stock if level is not None else None
+        if level is not None:
+            clock_txt = (f"DAY {world.t // cfg.day_ticks + 1}/{level.days} "
+                         f"({world.t}/{level.days * cfg.day_ticks})")
+        else:
+            clock_txt = f"tick {world.t}"
         line1 = (f"SURV {surv} INFECTED {inf} ZOMBIES {zomb} LOOT {loot} "
                  f"STOCK {world.stockpile}/{win_stock if win_stock is not None else '?'} "
-                 f"tick {world.t} x{ticks_per_frame if not paused else 0}"
+                 f"{clock_txt} x{ticks_per_frame if not paused else 0}"
                  + (f" [{level.name}]" if level is not None else "")
                  + (" NIGHT" if show_daynight and _is_night(world.t) else ""))
         sel = ""
@@ -312,7 +328,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
             screen.blit(sel_surf, (10, m_px + 24))
         pygame.display.flip()
 
-        if screenshot and (frame >= frames or extinct or won):
+        if screenshot and (frame >= frames or extinct or won or quota_missed):
             pygame.image.save(screen, screenshot)
             done = True
         clock.tick(60)

@@ -32,6 +32,7 @@ R_NEED = -0.004
 R_SURVIVE = 4.0
 R_DEPOSIT = 3.0   # per item deposited in the safe house ("deposit" event, n items)
 R_GUN = 1.0       # bonus for picking up a gun (loot event with kind == "gun")
+R_QUOTA = 6.0     # per living survivor when the level's stockpile quota is met
 
 
 def obs_for(world, s):
@@ -152,6 +153,9 @@ class SurvivorEnv:
                               "n_supply_outdoor": 0, "supply_per_building": 0.0,
                               "width": lvl.map.w, "height": lvl.map.h})
         cfg = Config(**{**self.base_cfg.to_dict(), **overrides})
+        if lvl is not None:
+            # authored levels set their own deadline: days * day_ticks
+            self.horizon = lvl.days * cfg.day_ticks
         self.world = World(cfg, level=lvl)
         for s in self.world.survivors:
             s.rl = True
@@ -239,6 +243,12 @@ class SurvivorEnv:
         done = survivors_alive == 0 or w.t >= self.horizon
         if done:
             self.pending_reset = True
+            quota_met = 0
+            if w.level is not None and w.stockpile >= w.level.win_stock:
+                quota_met = 1
+                for s in w.survivors:
+                    if s.alive:
+                        rew[s.id] = rew.get(s.id, 0.0) + R_QUOTA
             for s in w.survivors:
                 if s.alive:
                     rew[s.id] = rew.get(s.id, 0.0) + R_SURVIVE
@@ -249,6 +259,8 @@ class SurvivorEnv:
                 "kills": w.log.count("kill"),
                 "turns": w.log.count("turn"),
                 "ticks": w.t,
+                "quota": quota_met,
+                "stockpile": w.stockpile,
             }
         dead = {sid for sid in self._start_ids if not w.agents_by_id[sid].alive}
         return self.obs(), rew, done, {"dead": dead}

@@ -93,13 +93,20 @@ def main():
             w.step()
             loot_now = w.log.count("loot")
 
-            if w.counts()[0] == 0 or w.t >= args.horizon:
+            if w.counts()[0] == 0 or w.t >= env.horizon:
                 surv, inf, zomb = w.counts()
                 kills = w.log.count("kill") - ep_kills0
-                if surv > 0:
-                    banner = (f"EPISODE {episode} SURVIVED  -  {surv}/{args.survivors} ALIVE",
-                              f"loot {loot_now}  -  reloading improved policy...",
+                quota = (w.level is not None and w.stockpile >= w.level.win_stock)
+                if surv > 0 and quota:
+                    banner = (f"EPISODE {episode}  -  QUOTA MET, CAMP SUPPLIED",
+                              f"{surv}/{args.survivors} alive  -  stock {w.stockpile}/{w.level.win_stock}"
+                              f"  -  reloading policy...",
                               (120, 235, 120))
+                elif surv > 0:
+                    banner = (f"EPISODE {episode}  -  DAY LIMIT, QUOTA MISSED",
+                              f"{surv}/{args.survivors} alive  -  stock {w.stockpile}/{w.level.win_stock}"
+                              f"  -  reloading policy...",
+                              (235, 170, 70))
                 else:
                     banner = (f"EPISODE {episode} FAILED  -  entire squad lost",
                               f"loot {loot_now}  -  reloading policy...",
@@ -167,7 +174,7 @@ def main():
         surv, inf, zomb = w.counts()
         lvl_name = w.level.name if w.level is not None else "procedural"
         line = (f"LIVE POLICY  EP {episode}  [{lvl_name}]   SURV {surv}/{args.survivors}   "
-                f"ZOMB {zomb}   LOOT {w.log.count('loot')}   tick {min(w.t, args.horizon)}/{args.horizon}")
+                f"ZOMB {zomb}   LOOT {w.log.count('loot')}   tick {min(w.t, env.horizon)}/{env.horizon}")
         screen.blit(font.render(line, True, (150, 220, 150)), (10, m_px + 10))
         screen.blit(font.render("the network reloads from the trainer's checkpoint after every episode",
                                 True, (120, 120, 130)), (10, m_px + 26))

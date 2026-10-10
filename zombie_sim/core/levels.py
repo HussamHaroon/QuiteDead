@@ -15,17 +15,21 @@ from .grid import GameMap, GRASS, ROAD, FLOOR, WALL, DOOR, WALKABLE
 
 class Level:
     def __init__(self, idx, name, game_map, supplies, survivor_spawns,
-                 zombie_spawns, props, n_zombies, advance_at, theme=None):
+                 zombie_spawns, props, n_zombies, advance_at, theme=None,
+                 safehouse=None, win_stock=25, days=2):
         self.idx = idx
         self.name = name
         self.map = game_map
-        self.supplies = supplies          # [(x, y, kind)]
+        self.supplies = supplies          # [(x, y, kind)] — food/water/meds/guns/ammo
         self.survivor_spawns = survivor_spawns
         self.zombie_spawns = zombie_spawns
         self.props = props                # [(sprite_relpath, x, y)]
         self.n_zombies = n_zombies
         self.advance_at = advance_at
         self.theme = theme or {}
+        self.safehouse = safehouse        # (x, y, w, h) tile rect or None (World auto-picks)
+        self.win_stock = win_stock        # stockpile (deposited items) needed to win
+        self.days = int(days)             # deadline = days * cfg.day_ticks
 
 
 def load_levels(path):
@@ -84,6 +88,10 @@ def _build(idx, d):
         supplies.append((x + 0.5, y + 0.5, "water"))
     for x, y in d.get("meds", []):
         supplies.append((x + 0.5, y + 0.5, "meds"))
+    for x, y in d.get("guns", []):
+        supplies.append((x + 0.5, y + 0.5, "gun"))
+    for x, y in d.get("ammo", []):
+        supplies.append((x + 0.5, y + 0.5, "ammo"))
     for x, y, kind in supplies:
         if m.blocked(int(x), int(y)):
             raise ValueError(f"level '{d.get('name', idx)}': supply {kind} at "
@@ -91,6 +99,16 @@ def _build(idx, d):
     for x, y in d.get("survivor_spawns", []) + d.get("zombie_spawns", []):
         if m.blocked(x, y):
             raise ValueError(f"level '{d.get('name', idx)}': spawn at ({x},{y}) is on a wall")
+
+    safehouse = d.get("safehouse")
+    if safehouse is not None:
+        safehouse = tuple(int(v) for v in safehouse)
+        if len(safehouse) != 4:
+            raise ValueError(f"level '{d.get('name', idx)}': safehouse must be [x, y, w, h]")
+        sx0, sy0, sw, sh = safehouse
+        if not (0 <= sx0 and 0 <= sy0 and sx0 + sw <= w and sy0 + sh <= h):
+            raise ValueError(f"level '{d.get('name', idx)}': safehouse {safehouse} "
+                             f"is outside the {w}x{h} map")
 
     props = [(p[0], int(p[1]), int(p[2])) for p in d.get("props", [])]
     props += _scatter_props(idx, m, d, supplies,
@@ -100,7 +118,8 @@ def _build(idx, d):
                  [tuple(s) for s in d.get("survivor_spawns", [])],
                  [tuple(z) for z in d.get("zombie_spawns", [])],
                  props, int(d.get("n_zombies", 8)), float(d.get("advance_at", 0.6)),
-                 theme=d.get("theme", {}))
+                 theme=d.get("theme", {}), safehouse=safehouse,
+                 win_stock=int(d.get("win_stock", 25)), days=int(d.get("days", 2)))
 
 
 def _scatter_props(idx, m, d, supplies, surv_spawns, zombie_spawns):

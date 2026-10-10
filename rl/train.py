@@ -160,8 +160,8 @@ def main():
     csv_path = os.path.join(run_dir, "metrics.csv")
     csv_f = open(csv_path, "w", newline="", encoding="utf-8")
     wr = csv.writer(csv_f)
-    wr.writerow(["update", "agent_steps", "level", "r_step", "ep_rew", "surv_rate", "supplies",
-                 "kills", "turns", "loss", "entropy", "clipfrac", "steps_per_s"])
+    wr.writerow(["update", "agent_steps", "level", "r_step", "ep_rew", "surv_rate", "quota",
+                 "supplies", "kills", "turns", "loss", "entropy", "clipfrac", "steps_per_s"])
 
     print(f"QuiteDead RL training | {args.envs} envs x {args.survivors} survivors "
           f"| map {args.size}x{args.size} | {args.zombies} zombies | -> {run_dir}",
@@ -183,8 +183,9 @@ def main():
             sup = np.mean([s["supplies"] for s in recent[-k:]])
             kil = np.mean([s["kills"] for s in recent[-k:]])
             trn = np.mean([s["turns"] for s in recent[-k:]])
+            qta = np.mean([s.get("quota", 0) for s in recent[-k:]])
         else:
-            ep_rew = surv = sup = kil = trn = 0.0
+            ep_rew = surv = sup = kil = trn = qta = 0.0
 
         sps = total_agent_steps / max(time.time() - t0, 1e-9)
 
@@ -215,13 +216,14 @@ def main():
 
         lvl_no = cur_level + 1 if levels else 0
         wr.writerow([upd, total_agent_steps, lvl_no, f"{mean_rew:.3f}", f"{ep_rew:.1f}", f"{surv:.3f}",
-                     f"{sup:.1f}", f"{kil:.1f}", f"{trn:.1f}", f"{stats['loss']:.4f}",
+                     f"{qta:.2f}", f"{sup:.1f}", f"{kil:.1f}", f"{trn:.1f}", f"{stats['loss']:.4f}",
                      f"{stats['entropy']:.3f}", f"{stats['clipfrac']:.3f}", f"{sps:.0f}"])
         csv_f.flush()
         lvl_tag = f"L{lvl_no} " if levels else ""
+        q_tag = " QUOTA" if qta > 0.5 else ""
         print(f"upd {upd:>5} {lvl_tag}| steps {total_agent_steps:>8} | r/step {mean_rew:>7.3f} "
               f"| ep_rew {ep_rew:>7.1f} | surv {surv:.2f} | supplies {sup:>5.1f} "
-              f"| kills {kil:>4.1f} | turns {trn:>4.1f} | ent {stats['entropy']:.3f} "
+              f"| kills {kil:>4.1f} | turns {trn:>4.1f}{q_tag} | ent {stats['entropy']:.3f} "
               f"| {sps:.0f} a-steps/s",
               flush=True)
 
