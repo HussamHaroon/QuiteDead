@@ -132,6 +132,9 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
     show_cone = True
     show_noise = False
     show_daynight = True
+    show_items = True          # item radar: pulsing rings on every untaken pickup
+    item_flash = []            # gunshot shockwaves [(x, y, real_ms)]
+    scanned_events = 0         # how many log events the flash scanner has seen
     night_overlay = pygame.Surface((m_px, m_px), pygame.SRCALPHA)
     extinct = False
     extinct_at = 0
@@ -167,6 +170,8 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                     show_noise = not show_noise
                 elif ev.key == pygame.K_t:
                     show_daynight = not show_daynight
+                elif ev.key == pygame.K_i:
+                    show_items = not show_items
                 elif ev.key == pygame.K_r and (extinct or won):
                     _new_outbreak()
                 elif ev.key == pygame.K_TAB:
@@ -187,6 +192,13 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                 won = True
                 win_reason = "stock"
                 extinct_at = pygame.time.get_ticks()
+
+        # gunshot shockwaves: every shot is loud — make the noise mechanic visible
+        for e in world.log.events[scanned_events:]:
+            if e["type"] == "shot":
+                item_flash.append((e["x"], e["y"], pygame.time.get_ticks()))
+        scanned_events = len(world.log.events)
+        item_flash[:] = [f for f in item_flash if pygame.time.get_ticks() - f[2] < 450]
 
         screen.fill((16, 16, 20))
         screen.blit(background, (0, 0))
@@ -212,6 +224,15 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                 centerx=rect.centerx,
                 bottom=max(label.get_height() + 2, rect.top - 2)))
 
+        # expanding shockwave ring on every gunshot (the noise the zombies hear)
+        for fx, fy, t0 in item_flash:
+            k = (pygame.time.get_ticks() - t0) / 450.0
+            r = int(6 + k * 42)
+            a = int(180 * (1.0 - k))
+            ring = pygame.Surface((r * 2 + 4, r * 2 + 4), pygame.SRCALPHA)
+            pygame.draw.circle(ring, (255, 200, 90, a), (r + 2, r + 2), r, 2)
+            screen.blit(ring, (fx * TILE - r - 2, fy * TILE - r - 2))
+
         if level is not None:
             for relpath, px, py in level.props:
                 img = bank.prop(relpath)
@@ -223,11 +244,25 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
             screen.blit(overlay, (0, 0))
             overlay.fill((0, 0, 0, 0))
 
+        # item radar: pulsing color-coded rings over every untaken pickup
+        # (observer omniscience — the AGENTS still only know what they've seen)
+        if show_items:
+            pulse = 5 + int(2.5 * math.sin(pygame.time.get_ticks() * 0.006))
+            ring_colors = {"food": (232, 146, 58), "water": (86, 156, 232),
+                           "meds": (226, 88, 96), "gun": (80, 230, 255),
+                           "ammo": (255, 220, 80)}
+            for sup in world.supplies.values():
+                if not sup.taken:
+                    c = ring_colors.get(sup.kind, (255, 255, 255))
+                    pygame.draw.circle(screen, c, _to_px(sup.x, sup.y), pulse, 1)
+
         for sup in world.supplies.values():
             if not sup.taken:
                 img = bank.pickup(sup.kind)
                 if img is not None:
-                    screen.blit(img, img.get_rect(center=_to_px(sup.x, sup.y)))
+                    bob = int(1.5 * math.sin(pygame.time.get_ticks() * 0.004 + sup.id))
+                    screen.blit(img, img.get_rect(
+                        center=(_to_px(sup.x, sup.y)[0], _to_px(sup.x, sup.y)[1] - 2 + bob)))
                 else:
                     pygame.draw.circle(screen, SUPPLY_COLORS[sup.kind], _to_px(sup.x, sup.y), 3)
                     pygame.draw.circle(screen, (235, 235, 235), _to_px(sup.x, sup.y), 3, 1)
@@ -294,7 +329,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                    f"meds {selected.inventory['meds']}"
                    + ("  INFECTED" if selected.infected else ""))
         screen.blit(font.render(line1, True, (225, 225, 225)), (10, m_px + 4))
-        hint = font.render("SPACE pause | 1-4 speed | TAB agent | V cone | N noise | R restart | ESC quit",
+        hint = font.render("SPACE pause | 1-4 speed | TAB agent | V cone | I items | N noise | R restart | ESC quit",
                            True, (120, 120, 130))
         screen.blit(hint, hint.get_rect(topright=(m_px - 8, m_px + 24)))
         sel_surf = font.render(sel, True, (150, 220, 150))

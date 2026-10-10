@@ -61,7 +61,9 @@ class TLSSprites:
         for key, name in PICKUP_SPRITES.items():
             p = os.path.join(base, "Objects", "Pickable", f"{name}.png")
             if os.path.exists(p):
-                self.pickups[key] = pygame.image.load(p).convert_alpha()
+                # 1.5x so items actually read on a 48-tile map
+                self.pickups[key] = pygame.transform.scale_by(
+                    pygame.image.load(p).convert_alpha(), 1.5)
         self._load_map_tiles()
 
     def _load_map_tiles(self):
