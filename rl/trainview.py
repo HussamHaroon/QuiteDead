@@ -9,6 +9,7 @@ Episodes auto-restart; banners show the result of each attempt.
 import argparse
 import os
 import sys
+import time
 
 import numpy as np
 import pygame
@@ -36,6 +37,14 @@ def main():
     torch.set_num_threads(2)
     policy = ActorCritic(OBS_DIM, ACT_DIM)
     ckpt_path = os.path.join(args.run_dir, "policy.pt")
+    waited = 0.0
+    while not os.path.exists(ckpt_path):
+        if waited == 0.0:
+            print(f"waiting for the first checkpoint in {args.run_dir} ...", flush=True)
+        time.sleep(2.0)
+        waited += 2.0
+        if waited > 180:
+            raise SystemExit(f"no checkpoint appeared at {ckpt_path}")
     policy.load_state_dict(torch.load(ckpt_path, map_location="cpu"))
     policy.eval()
     loaded_at = os.path.getmtime(ckpt_path)
