@@ -24,7 +24,8 @@ ACT_DIM = 10                    # 0 stay, 1-8 move dirs, 9 attack
 DIRS = [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1)]
 
 R_LOOT = 2.0
-R_KILL = 3.0
+R_KILL = 1.0      # combat pays, but the MISSION must pay more: a 3-item deposit
+                  # run (+9) beats any kill; this kills the brawl-and-die local optimum
 R_BITE = -4.0
 R_DEATH = -10.0
 R_STEP = -0.002
