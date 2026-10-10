@@ -1,0 +1,21 @@
+#!/bin/sh
+# QuiteDead pre-commit hook: DoD fast checks (determinism + test suite).
+# Skippable with `git commit --no-verify` for WIP commits.
+
+echo "[QuiteDead] determinism check (800 ticks)..."
+if ! python run_sim.py --determinism --ticks 800 --quiet > /dev/null 2>&1; then
+  echo "[QuiteDead] FAIL: determinism check failed. Commit rejected."
+  echo "            (bypass with --no-verify, but know why it failed)"
+  exit 1
+fi
+
+echo "[QuiteDead] test suite..."
+if ! python -m pytest tests/ -q > .pytest_last.log 2>&1; then
+  echo "[QuiteDead] FAIL: test suite failed. Last output:"
+  tail -15 .pytest_last.log
+  echo "            (bypass with --no-verify, but know why it failed)"
+  exit 1
+fi
+
+echo "[QuiteDead] all checks passed."
+exit 0
