@@ -135,6 +135,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
     show_items = True          # item radar: pulsing rings on every untaken pickup
     item_flash = []            # gunshot shockwaves [(x, y, real_ms)]
     scanned_events = 0         # how many log events the flash scanner has seen
+    decals = []                # death stains — persist for the whole episode
     night_overlay = pygame.Surface((m_px, m_px), pygame.SRCALPHA)
     extinct = False
     extinct_at = 0
@@ -149,6 +150,9 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
         extinct = False
         won = False
         win_reason = None
+        decals.clear()
+        item_flash.clear()
+        scanned_events = 0
 
     overlay = pygame.Surface((m_px, m_px), pygame.SRCALPHA)
     done = False
@@ -194,14 +198,31 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                 extinct_at = pygame.time.get_ticks()
 
         # gunshot shockwaves: every shot is loud — make the noise mechanic visible
+        # + persistent history: death stains (never despawn within an episode)
         for e in world.log.events[scanned_events:]:
             if e["type"] == "shot":
                 item_flash.append((e["x"], e["y"], pygame.time.get_ticks()))
+            elif e["type"] == "death":
+                decals.append((e["x"], e["y"], e.get("kind", "?")))
         scanned_events = len(world.log.events)
         item_flash[:] = [f for f in item_flash if pygame.time.get_ticks() - f[2] < 450]
 
         screen.fill((16, 16, 20))
         screen.blit(background, (0, 0))
+
+        # task banner during the opening of the outbreak
+        if world.t < 200:
+            target = level.win_stock if level is not None else None
+            task = font.render(
+                (f"TASK: loot supplies and deposit them at the SAFE HOUSE  -  "
+                 f"{target} needed  -  zombies hunt on sight")
+                if target is not None else
+                "SANDBOX: procedural outbreak - watch the agents",
+                True, (255, 225, 70))
+            tbox = pygame.Surface((task.get_width() + 16, 26), pygame.SRCALPHA)
+            tbox.fill((10, 10, 14, 180))
+            screen.blit(tbox, (m_px // 2 - task.get_width() // 2 - 8, 8))
+            screen.blit(task, (m_px // 2 - task.get_width() // 2, 12))
 
         # cosmetic day/night cycle (viewer-only; does not affect simulation)
         if show_daynight:
@@ -238,6 +259,15 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                 img = bank.prop(relpath)
                 if img is not None:
                     screen.blit(img, img.get_rect(center=((px + 0.5) * TILE, (py + 0.5) * TILE)))
+
+        # persistent history: death stains + picked-clean loot markers
+        for dx_, dy_, kind in decals:
+            col = (120, 22, 22) if kind == "survivor" else (70, 30, 30)
+            pygame.draw.circle(screen, col, _to_px(dx_, dy_), 4)
+            pygame.draw.circle(screen, (30, 10, 10), _to_px(dx_, dy_), 4, 1)
+        for sup in world.supplies.values():
+            if sup.taken:
+                pygame.draw.circle(screen, (70, 70, 66), _to_px(sup.x, sup.y), 2, 1)
 
         if show_noise:
             _draw_noise(overlay, world)

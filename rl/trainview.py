@@ -7,6 +7,7 @@ Episodes auto-restart; banners show the result of each attempt.
   python rl/trainview.py --run-dir runs/curriculum3 --levels config/levels.yaml
 """
 import argparse
+import math
 import os
 import sys
 import time
@@ -70,6 +71,9 @@ def main():
 
     episode = 1
     ep_kills0 = 0
+    decals = []            # death stains — persist for the whole episode
+    item_flash = []        # gunshot shockwaves
+    scanned_events = 0
     first_lvl = env.world.level
     bank = load_bank(first_lvl.theme if first_lvl is not None else None)
     last_theme = first_lvl.theme if first_lvl is not None else None
@@ -134,18 +138,70 @@ def main():
             background = _prerender_map(env.world, getattr(bank, "map_tiles", None))
             rot_cache.clear()
             ep_kills0 = env.world.log.count("kill")
+            decals.clear()
+            item_flash.clear()
+            scanned_events = 0
             banner = None
 
         w = env.world
         screen.fill((16, 16, 20))
         screen.blit(background, (0, 0))
+
+        # task reminder during the opening of each episode
+        if w.t < 200 and w.level is not None:
+            task = font.render(
+                f"TASK: loot supplies and deposit them at the SAFE HOUSE  -  "
+                f"{w.level.win_stock} needed, no time limit, zombies hunt on sight",
+                True, (255, 225, 70))
+            tbox = pygame.Surface((task.get_width() + 16, 26), pygame.SRCALPHA)
+            tbox.fill((10, 10, 14, 180))
+            screen.blit(tbox, (m_px // 2 - task.get_width() // 2 - 8, 8))
+            screen.blit(task, (m_px // 2 - task.get_width() // 2, 12))
+
+        # persistent history: death stains and picked-clean markers never despawn
+        for e in w.log.events[scanned_events:]:
+            if e["type"] == "death":
+                decals.append((e["x"], e["y"], e.get("kind", "?")))
+            elif e["type"] == "shot":
+                item_flash.append((e["x"], e["y"], pygame.time.get_ticks()))
+        scanned_events = len(w.log.events)
+        item_flash[:] = [f for f in item_flash if pygame.time.get_ticks() - f[2] < 450]
+        for dx_, dy_, kind in decals:
+            col = (120, 22, 22) if kind == "survivor" else (70, 30, 30)
+            pygame.draw.circle(screen, col, _to_px(dx_, dy_), 4)
+            pygame.draw.circle(screen, (30, 10, 10), _to_px(dx_, dy_), 4, 1)
+        for sup in w.supplies.values():
+            if sup.taken:
+                pygame.draw.circle(screen, (70, 70, 66), _to_px(sup.x, sup.y), 2, 1)
+
+        # gunshot shockwaves
+        for fx, fy, t0 in item_flash:
+            k = (pygame.time.get_ticks() - t0) / 450.0
+            r = int(6 + k * 42)
+            a = int(180 * (1.0 - k))
+            ring = pygame.Surface((r * 2 + 4, r * 2 + 4), pygame.SRCALPHA)
+            pygame.draw.circle(ring, (255, 200, 90, a), (r + 2, r + 2), r, 2)
+            screen.blit(ring, (fx * TILE - r - 2, fy * TILE - r - 2))
+
+        # item radar: pulsing rings on every untaken pickup (observer cheat)
+        pulse = 5 + int(2.5 * math.sin(pygame.time.get_ticks() * 0.006))
+        ring_colors = {"food": (232, 146, 58), "water": (86, 156, 232),
+                       "meds": (226, 88, 96), "gun": (80, 230, 255),
+                       "ammo": (255, 220, 80)}
+        for sup in w.supplies.values():
+            if not sup.taken:
+                pygame.draw.circle(screen, ring_colors.get(sup.kind, (255, 255, 255)),
+                                   _to_px(sup.x, sup.y), pulse, 1)
         for sup in w.supplies.values():
             if not sup.taken:
                 img = bank.pickup(sup.kind) if bank else None
                 if img is not None:
-                    screen.blit(img, img.get_rect(center=_to_px(sup.x, sup.y)))
+                    bob = int(1.5 * math.sin(pygame.time.get_ticks() * 0.004 + sup.id))
+                    screen.blit(img, img.get_rect(
+                        center=(_to_px(sup.x, sup.y)[0], _to_px(sup.x, sup.y)[1] - 2 + bob)))
                 else:
                     pygame.draw.circle(screen, SUPPLY_COLORS[sup.kind], _to_px(sup.x, sup.y), 3)
+
         af = pygame.time.get_ticks() // 90
         for s in w.survivors:
             if s.alive:
@@ -173,11 +229,21 @@ def main():
         pygame.draw.rect(screen, (24, 24, 30), (0, m_px, m_px, HUD_H))
         surv, inf, zomb = w.counts()
         lvl_name = w.level.name if w.level is not None else "procedural"
+        watcher = next((s for s in w.survivors if s.alive), None)
+        state_txt = ""
+        if watcher is not None:
+            gun = f"gun+{watcher.ammo}r" if watcher.gun else "unarmed"
+            state_txt = (f"[{watcher.id}] {getattr(watcher, 'state_label', '?'):<9} {gun}  "
+                         f"hp {watcher.hp:.0f}  food {watcher.inventory['food']} "
+                         f"water {watcher.inventory['water']}")
+        stock = f"{w.stockpile}/{w.level.win_stock}" if w.level is not None else str(w.stockpile)
         line = (f"LIVE POLICY  EP {episode}  [{lvl_name}]   SURV {surv}/{args.survivors}   "
-                f"ZOMB {zomb}   LOOT {w.log.count('loot')}   tick {min(w.t, env.horizon)}/{env.horizon}")
+                f"ZOMB {zomb}   STOCK {stock}   tick {min(w.t, env.horizon)}/{env.horizon}")
         screen.blit(font.render(line, True, (150, 220, 150)), (10, m_px + 10))
-        screen.blit(font.render("the network reloads from the trainer's checkpoint after every episode",
-                                True, (120, 120, 130)), (10, m_px + 26))
+        screen.blit(font.render(state_txt, True, (200, 200, 160)), (10, m_px + 26))
+        screen.blit(font.render("network hot-reloads every episode",
+                                True, (120, 120, 130)),
+                    (m_px - 300, m_px + 26))
         pygame.display.flip()
         clock.tick(60)
 
