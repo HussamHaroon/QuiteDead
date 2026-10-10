@@ -5,7 +5,6 @@
   size: 40
   n_zombies: 6
   advance_at: 0.80
-  days: 2
   safehouse: [2, 2, 8, 5]        # top-left building, interior x3-8 / y3-5
   win_stock: 15
   roads_x: [7, 32]
@@ -49,7 +48,6 @@
   size: 48
   n_zombies: 14
   advance_at: 0.65
-  days: 2
   safehouse: [19, 30, 6, 6]      # just south of the center crossroads
   win_stock: 20
   theme:
@@ -105,7 +103,6 @@
   size: 48
   n_zombies: 18
   advance_at: 0.60
-  days: 2
   safehouse: [19, 34, 10, 9]     # bottom-center shop, opens north onto the plaza
   win_stock: 25
   theme:
@@ -155,7 +152,6 @@
   size: 48
   n_zombies: 22
   advance_at: 0.55
-  days: 2
   safehouse: [22, 16, 8, 8]      # clinic north of the survivor plaza
   win_stock: 30
   theme:
@@ -200,7 +196,6 @@
   size: 48
   n_zombies: 28
   advance_at: 0.50
-  days: 3
   safehouse: [17, 17, 12, 12]    # fortified block at the center crossroads
   win_stock: 35
   theme:

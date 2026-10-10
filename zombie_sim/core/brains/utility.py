@@ -88,6 +88,7 @@ def think(world, s):
         d = math.hypot(nearest.x - s.x, nearest.y - s.y)
         s.fear = min(1.0, s.fear + 0.08)
         if s.gun and s.ammo > 0 and d <= cfg.gun_range:
+            s.state_label = "SHOOTING"
             s.action = ("attack", nearest.id)
             s.path = None
             s.goal = None
@@ -95,9 +96,11 @@ def think(world, s):
             s.heading = math.atan2(nearest.y - s.y, nearest.x - s.x)
             return
         if d < cfg.danger_radius:
+            s.state_label = "FLEEING"
             _flee(s, threats, cfg)
             return
         if d < 1.15 and s.hp > cfg.fight_hp_threshold and s.cooldown <= 0:
+            s.state_label = "FIGHTING"
             s.action = ("attack", nearest.id)
             s.path = None
             s.vel = (0.0, 0.0)
@@ -107,10 +110,13 @@ def think(world, s):
     # 2. NEEDS
     if s.hunger > 70 and s.inventory["food"] > 0:
         s.action = ("eat", None)
+        s.state_label = "EATING"
     elif s.thirst > 70 and s.inventory["water"] > 0:
         s.action = ("drink", None)
+        s.state_label = "DRINKING"
     elif s.hp < 45 and s.inventory["meds"] > 0:
         s.action = ("heal", None)
+        s.state_label = "HEALING"
     else:
         s.action = None
 
@@ -120,7 +126,9 @@ def think(world, s):
         going_home = _carried(s) >= RETURN_LOAD \
             or (_carried(s) > 0 and not _has_useful(world, s))
         if going_home:
+            s.state_label = "RETURNING"
             if world.in_safehouse(s):
+                s.state_label = "DEPOSITING"
                 s.path = None
                 s.goal = None
                 s.vel = (0.0, 0.0)
@@ -132,12 +140,14 @@ def think(world, s):
     if s.action is None and s.memory_sup:
         sid = _pick_target(world, s)
         if sid is not None:
+            s.state_label = "LOOTING"
             sx, sy = s.memory_sup[sid]
             if _goto(s, m, sx, sy):
                 return
             s.memory_sup.pop(sid, None)  # unreachable — forget it
 
     # 5. EXPLORE
+    s.state_label = "EXPLORING"
     if s.path is None:
         for _ in range(8):
             tx = int(s.x + world.rng.uniform(-14, 14))

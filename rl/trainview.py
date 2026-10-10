@@ -30,7 +30,7 @@ def main():
     ap.add_argument("--run-dir", required=True, help="training run dir with policy.pt")
     ap.add_argument("--levels", default=None)
     ap.add_argument("--survivors", type=int, default=6)
-    ap.add_argument("--horizon", type=int, default=1000)
+    ap.add_argument("--horizon", type=int, default=4000)
     ap.add_argument("--seed", type=int, default=12345)
     args = ap.parse_args()
 
@@ -103,8 +103,8 @@ def main():
                               f"  -  reloading policy...",
                               (120, 235, 120))
                 elif surv > 0:
-                    banner = (f"EPISODE {episode}  -  DAY LIMIT, QUOTA MISSED",
-                              f"{surv}/{args.survivors} alive  -  stock {w.stockpile}/{w.level.win_stock}"
+                    banner = (f"EPISODE {episode}  -  EPISODE CAP REACHED",
+                              f"{surv}/{args.survivors} alive  -  stock {w.stockpile}/{w.level.win_stock if w.level else '?'}"
                               f"  -  reloading policy...",
                               (235, 170, 70))
                 else:

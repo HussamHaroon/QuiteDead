@@ -119,7 +119,8 @@ def main():
     ap.add_argument("--survivors", type=int, default=8)
     ap.add_argument("--zombies", type=int, default=2)
     ap.add_argument("--size", type=int, default=32)
-    ap.add_argument("--horizon", type=int, default=700)
+    ap.add_argument("--horizon", type=int, default=4000,
+                    help="safety cap; episodes normally end by quota or extinction")
     ap.add_argument("--lr", type=float, default=3e-4)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--run-dir", default=None)

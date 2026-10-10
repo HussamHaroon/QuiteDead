@@ -16,7 +16,7 @@ from .grid import GameMap, GRASS, ROAD, FLOOR, WALL, DOOR, WALKABLE
 class Level:
     def __init__(self, idx, name, game_map, supplies, survivor_spawns,
                  zombie_spawns, props, n_zombies, advance_at, theme=None,
-                 safehouse=None, win_stock=25, days=2):
+                 safehouse=None, win_stock=25):
         self.idx = idx
         self.name = name
         self.map = game_map
@@ -29,7 +29,6 @@ class Level:
         self.theme = theme or {}
         self.safehouse = safehouse        # (x, y, w, h) tile rect or None (World auto-picks)
         self.win_stock = win_stock        # stockpile (deposited items) needed to win
-        self.days = int(days)             # deadline = days * cfg.day_ticks
 
 
 def load_levels(path):
@@ -119,7 +118,7 @@ def _build(idx, d):
                  [tuple(z) for z in d.get("zombie_spawns", [])],
                  props, int(d.get("n_zombies", 8)), float(d.get("advance_at", 0.6)),
                  theme=d.get("theme", {}), safehouse=safehouse,
-                 win_stock=int(d.get("win_stock", 25)), days=int(d.get("days", 2)))
+                 win_stock=int(d.get("win_stock", 25)))
 
 
 def _scatter_props(idx, m, d, supplies, surv_spawns, zombie_spawns):

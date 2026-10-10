@@ -235,10 +235,22 @@ class World:
         infection_tick(self)
         needs_tick(self)
         reanimate_tick(self)
+        self._reinforce_tick()
 
         self.t += 1
         if self.t % 30 == 0:
             self.history.append((self.t, *self.counts()))
+
+    def _reinforce_tick(self):
+        """Slow trickle of fresh wanderers: the horde grows over time, so the
+        survivors' only real clock is how fast they finish the quota."""
+        every = self.cfg.reinforce_every_ticks
+        if not every or self.t == 0 or self.t % every != 0:
+            return
+        for _ in range(self.cfg.reinforce_count):
+            x, y = self._rand_open_tile()
+            self._add_zombie(x, y)
+            self.log.add(self.t, "reinforce", x=round(x, 1), y=round(y, 1))
 
     def counts(self):
         surv = sum(1 for s in self.survivors if s.alive)

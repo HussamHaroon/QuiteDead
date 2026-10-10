@@ -20,7 +20,7 @@ class Agent:
 class Survivor(Agent):
     __slots__ = ("hp", "hunger", "thirst", "inventory", "infected", "infection",
                  "fear", "memory_z", "memory_sup", "path", "path_i", "action",
-                 "cooldown", "fleeing", "goal", "rl", "gun", "ammo")
+                 "cooldown", "fleeing", "goal", "rl", "gun", "ammo", "state_label")
 
     def __init__(self, aid, x, y, hp=100.0):
         super().__init__(aid, "survivor", x, y)
@@ -45,6 +45,7 @@ class Survivor(Agent):
         self.cooldown = 0
         self.fleeing = False
         self.goal = None
+        self.state_label = "idle"   # what the brain is doing (viewer inspector)
 
 
 class Zombie(Agent):

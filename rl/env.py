@@ -93,9 +93,11 @@ def apply_action(world, s, a):
     s.path = None
     s.goal = None
     if a == 0:
+        s.state_label = "HOLD"
         s.vel = (0.0, 0.0)
         s.action = None
     elif 1 <= a <= 8:
+        s.state_label = "MOVE"
         dx, dy = DIRS[a - 1]
         s.vel = (dx * cfg.survivor_run, dy * cfg.survivor_run)
         s.heading = math.atan2(dy, dx)
@@ -114,8 +116,10 @@ def apply_action(world, s, a):
                     best, z = d, o
         s.vel = (0.0, 0.0)
         if z is not None and s.cooldown <= 0:
+            s.state_label = "ENGAGE"
             s.action = ("attack", z.id)
         else:
+            s.state_label = "HOLD"
             s.action = None
 
 
@@ -153,9 +157,6 @@ class SurvivorEnv:
                               "n_supply_outdoor": 0, "supply_per_building": 0.0,
                               "width": lvl.map.w, "height": lvl.map.h})
         cfg = Config(**{**self.base_cfg.to_dict(), **overrides})
-        if lvl is not None:
-            # authored levels set their own deadline: days * day_ticks
-            self.horizon = lvl.days * cfg.day_ticks
         self.world = World(cfg, level=lvl)
         for s in self.world.survivors:
             s.rl = True
