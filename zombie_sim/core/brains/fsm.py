@@ -15,8 +15,10 @@ def think(world, z):
 
     visible = None
     best_d = 1e18
-    for s in world.spatial_z.query(z.x, z.y, cfg.zombie_vision_range):
-        if s.alive and can_see(m, z, s.x, s.y, cfg.zombie_vision_range, cfg.zombie_vision_fov_deg):
+    # spatial_s is the SURVIVOR hash — zombies hunt humans, not each other
+    for s in world.spatial_s.query(z.x, z.y, cfg.zombie_vision_range):
+        if s.alive and s.kind == "survivor" \
+                and can_see(m, z, s.x, s.y, cfg.zombie_vision_range, cfg.zombie_vision_fov_deg):
             # detection is probabilistic AND distance-scaled: far survivors in
             # the cone are easy to miss, point-blank is nearly certain
             d = math.hypot(s.x - z.x, s.y - z.y)
@@ -69,6 +71,14 @@ def think(world, z):
             _separate(world, z)
             return
 
+    # wander: random drift, but shamble back toward the populated middle when
+    # close to the border so zombies don't pile up in map corners
+    w = world.game_map
+    if z.x < 6 or z.x > w.w - 6 or z.y < 6 or z.y > w.h - 6:
+        cx, cy = w.w / 2.0, w.h / 2.0
+        center_head = math.atan2(cy - z.y, cx - z.x)
+        diff = (center_head - z.heading + math.pi) % (2 * math.pi) - math.pi
+        z.heading += diff * 0.08
     z.heading += world.rng.uniform(-0.35, 0.35)
     z.vel = (math.cos(z.heading) * cfg.zombie_walk, math.sin(z.heading) * cfg.zombie_walk)
     _separate(world, z)
