@@ -70,7 +70,9 @@ def rollout(envs, policy, steps_per_env, gamma, lam):
                 t["rew"].append(rew.get(aid, 0.0))
                 rew_all.append(rew.get(aid, 0.0))
                 z_dead = aid in info["dead"]
-                t["done"].append(1.0 if (z_dead or done) else 0.0)
+                # only true terminals (zombie death, extinction) end the GAE
+                # window — horizon truncations bootstrap from V(s_T)
+                t["done"].append(1.0 if (z_dead or (done and not info.get("truncated", False))) else 0.0)
                 if z_dead:
                     t["next_obs"] = None
                     t["alive"] = False
@@ -112,7 +114,8 @@ def main():
     ap.add_argument("--horizon", type=int, default=1500)
     ap.add_argument("--lr", type=float, default=3e-4)
     ap.add_argument("--seed", type=int, default=2)
-    ap.add_argument("--levels", default="../config/levels.yaml")
+    ap.add_argument("--levels", default=os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config", "levels.yaml"))
     ap.add_argument("--level-index", type=int, default=1, help="training level (1 = Parking Lot)")
     ap.add_argument("--run-dir", default=None)
     ap.add_argument("--ckpt-every", type=int, default=50)
@@ -139,7 +142,7 @@ def main():
     csv_path = os.path.join(run_dir, "metrics.csv")
     csv_f = open(csv_path, "w", newline="", encoding="utf-8")
     wr = csv.writer(csv_f)
-    wr.writerow(["update", "agent_steps", "ep_rew", "bites", "deaths",
+    wr.writerow(["update", "agent_steps", "ep_rew", "bites", "kills",
                  "loss", "entropy", "clipfrac", "steps_per_s"])
 
     print(f"QuiteDead ZOMBIE training | {args.envs} envs x {args.zombies} zombies "
@@ -159,6 +162,9 @@ def main():
             ep_rew = np.mean([s["reward"] for s in recent[-k:]])
             bites = np.mean([s["bites"] for s in recent[-k:]])
             kills = np.mean([s["kills"] for s in recent[-k:]])
+            # consume — never re-report a stale episode on later updates
+            for e in envs:
+                e.last_stats = None
         else:
             ep_rew = bites = kills = 0.0
 

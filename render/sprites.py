@@ -53,8 +53,11 @@ class TLSSprites:
             for anim, label in (("idle", "Idle"), ("run", "Walk")):
                 for d, dirlabel in (("down", "Down"), ("up", "Up"),
                                     ("side", "Side"), ("sideleft", "Side-left")):
+                    # [Ww]-style class: the pack mixes Walk/walk casing, and
+                    # only Windows filesystems match glob case-insensitively
                     paths = sorted(glob.glob(os.path.join(
-                        base, "Enemies", kind, f"*_{dirlabel}_{label}-Sheet*.png")))
+                        base, "Enemies", kind,
+                        f"*_{dirlabel}_[{label[0]}{label[0].lower()}]{label[1:]}-Sheet*.png")))
                     if paths:
                         frames = _frames_from_sheet(paths[0])
                         self.zomb_sheets[(kind, anim, d)] = [
@@ -91,7 +94,7 @@ class TLSSprites:
                 self.surv_death[d] = [pygame.transform.scale_by(f, 2) for f in frames]
 
     def _load_map_tiles(self):
-        """Crop ground/wall tiles from the level's themed tilesets, scaled 2x.
+        """Crop ground/wall tiles from the level's themed tilesets (native 16px).
 
         Each tile id maps to a list of variants; the viewer picks one
         deterministically per tile coordinate so the ground looks organic.
@@ -111,16 +114,6 @@ class TLSSprites:
         def tile(img, tx, ty):
             return img.subsurface((tx * 16, ty * 16, 16, 16)).copy()
 
-        tint = self.theme.get("wall_tint")
-        if tint:
-            for group in (
-                [tile(brick, 0, 0), tile(brick, 4, 0), tile(brick, 5, 1)],
-                [tile(ts, 3, 11), tile(ts, 4, 11), tile(ts, 5, 11)],
-                [tile(ts, 4, 11)],
-            ):
-                for s in group:
-                    s.fill(tuple(tint), special_flags=pygame.BLEND_RGB_MULT)
-
         self.map_tiles = {
             0: [tile(ts, 0, 0), tile(ts, 0, 0), tile(ts, 0, 0), tile(ts, 3, 1)],   # grass + flower decor
             1: [tile(ts, 4, 7), tile(ts, 5, 9), tile(ts, 3, 7), tile(ts, 3, 8),
@@ -129,6 +122,12 @@ class TLSSprites:
             3: [tile(brick, 0, 0), tile(brick, 4, 0), tile(brick, 5, 1)],           # brick walls
             4: [tile(ts, 4, 11)],                                                   # doorway (wood)
         }
+        # tint the actual cached surfaces — tile() returns a fresh copy each
+        # call, so tinting before this dict is built would be thrown away
+        tint = self.theme.get("wall_tint")
+        if tint:
+            for s in self.map_tiles[2] + self.map_tiles[3] + self.map_tiles[4]:
+                s.fill(tuple(tint), special_flags=pygame.BLEND_RGB_MULT)
 
     def _load(self, folder, anim):
         base = os.path.join(self.base, "Character", "Main", folder)

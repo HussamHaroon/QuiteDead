@@ -14,6 +14,9 @@ class Config:
     # reanimation is the pressure. Turn on per-experiment if wanted.
     reinforce_every_ticks: int = 0
     reinforce_count: int = 2
+    # brains
+    brain_survivors: str = "utility"      # utility | random
+    brain_zombies: str = "fsm"            # fsm | random
     # population
     n_survivors: int = 60
     n_zombies: int = 3

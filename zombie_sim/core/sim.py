@@ -18,6 +18,7 @@ from .systems import (move_agents, loot_tick, deposit_tick, combat_tick,
                       survivor_attacks, infection_tick, needs_tick,
                       reanimate_tick)
 from .brains import fsm, utility
+from .brains import random_brain
 
 
 def _nearest_building(buildings, points):
@@ -234,10 +235,16 @@ class World:
 
         for s in self.survivors:
             if s.alive and not s.rl:
-                utility.think(self, s)
+                if self.cfg.brain_survivors == "random":
+                    random_brain.RandomSurvivorBrain().think(self, s)
+                else:
+                    utility.think(self, s)
         for z in self.zombies:
             if z.alive and not z.rl:
-                fsm.think(self, z)
+                if self.cfg.brain_zombies == "random":
+                    random_brain.RandomZombieBrain().think(self, z)
+                else:
+                    fsm.think(self, z)
 
         move_agents(self)
         loot_tick(self)

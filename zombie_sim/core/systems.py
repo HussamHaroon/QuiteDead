@@ -41,7 +41,12 @@ def move_agents(world):
         moved = math.hypot(a.x - old_x, a.y - old_y)
         if moved > 1e-4:
             a.heading = math.atan2(a.y - old_y, a.x - old_x)
-            world.noise.emit(a.x, a.y, cfg.noise_run if _is_running(a) else cfg.noise_walk)
+            # only survivors deposit locomotion noise: zombies are the only
+            # listeners, and the accumulating field would let them hear their
+            # own trail (steady 12.5/tile > hearing threshold 6.0) and chase
+            # themselves instead of real prey
+            if a.kind == "survivor":
+                world.noise.emit(a.x, a.y, cfg.noise_run if _is_running(a) else cfg.noise_walk)
         elif a.kind == "zombie":
             # stuck against a wall: pick a new wander direction
             a.heading += world.rng.uniform(1.0, 2.5)
