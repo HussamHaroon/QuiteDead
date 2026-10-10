@@ -56,16 +56,32 @@ def main():
     policy.eval()
     loaded_at = os.path.getmtime(ckpt_path)
     train_upd = "?"
+    trainer_level = 0  # which level the trainer is actually on (from its metrics)
+
+    def _read_trainer_state():
+        """Mirror the trainer: its update count and current level."""
+        nonlocal train_upd, trainer_level
+        try:
+            with open(os.path.join(args.run_dir, "metrics.csv"), encoding="utf-8") as mf:
+                last = mf.readlines()[-1].split(",")
+            train_upd = last[0]
+            if levels is not None:
+                li = int(last[2]) - 1
+                if 0 <= li < len(levels):
+                    trainer_level = li
+        except (OSError, IndexError, ValueError):
+            pass
 
     levels = None
     if args.levels:
         from zombie_sim.core.levels import load_levels
         levels = load_levels(args.levels)
+        _read_trainer_state()
 
     env = SurvivorEnv(base_seed=args.seed, n_survivors=args.survivors,
                       horizon=args.horizon)
     if levels:
-        env.next_level = levels[0]
+        env.next_level = levels[trainer_level]
     env.reset()
 
     pygame.init()
@@ -127,28 +143,22 @@ def main():
                               (235, 90, 90))
                 banner = (banner[0], banner[1], banner[2], pygame.time.get_ticks())
         elif pygame.time.get_ticks() - banner[3] > BANNER_MS:
-            # reload the freshest checkpoint and start the next episode
+            # reload the freshest checkpoint and mirror the trainer's level
             try:
                 if os.path.getmtime(ckpt_path) != loaded_at:
                     policy.load_state_dict(torch.load(ckpt_path, map_location="cpu"))
                     loaded_at = os.path.getmtime(ckpt_path)
-                    # pull the trainer's update counter for the GEN display
-                    try:
-                        with open(os.path.join(args.run_dir, "metrics.csv"),
-                                  encoding="utf-8") as mf:
-                            train_upd = mf.readlines()[-1].split(",")[0]
-                    except (OSError, IndexError):
-                        pass
             except (FileNotFoundError, RuntimeError):
                 pass
+            _read_trainer_state()
             episode += 1
             if levels:
-                env.next_level = levels[(episode - 1) % len(levels)]
-            lvl = levels[(episode - 1) % len(levels)] if levels else None
+                env.next_level = levels[trainer_level]
             env.reset()
             if env.world.game_map.w * TILE != m_px:
                 m_px = env.world.game_map.w * TILE
                 screen = pygame.display.set_mode((m_px, m_px + HUD_H))
+            lvl = env.world.level
             if lvl is not None and lvl.theme != last_theme:
                 bank = load_bank(lvl.theme)
                 last_theme = lvl.theme
