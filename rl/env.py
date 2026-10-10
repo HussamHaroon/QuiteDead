@@ -303,18 +303,16 @@ class SurvivorEnv:
                     PBRS_GAMMA * phi_after - phi_before[s.id]) \
                     + R_AVOID * (PBRS_GAMMA * thr_after - thr_before[s.id])
 
-        done = survivors_alive == 0 or w.t >= self.horizon
+        # episode ends three ways: squad wiped (loss), stockpile quota met
+        # (THE WIN — terminal, exactly like the viewer's banner), or safety cap
+        won = w.level is not None and w.stockpile >= w.level.win_stock
+        done = survivors_alive == 0 or won or w.t >= self.horizon
         if done:
             self.pending_reset = True
-            quota_met = 0
-            if w.level is not None and w.stockpile >= w.level.win_stock:
-                quota_met = 1
-                for s in w.survivors:
-                    if s.alive:
-                        rew[s.id] = rew.get(s.id, 0.0) + R_QUOTA
+            quota_met = 1 if won else 0
             for s in w.survivors:
                 if s.alive:
-                    rew[s.id] = rew.get(s.id, 0.0) + R_SURVIVE
+                    rew[s.id] = rew.get(s.id, 0.0) + R_QUOTA * quota_met + R_SURVIVE
             self.last_stats = {
                 "reward": float(sum(rew.values())),
                 "survivors": survivors_alive,
