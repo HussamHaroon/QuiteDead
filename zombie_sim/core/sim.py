@@ -91,15 +91,18 @@ class World:
             s.skin = next(skins)
             self.survivors.append(s)
             self.agents_by_id[s.id] = s
-        # zombies spawn as far from survivor centers as possible
-        zx, zy = self.cfg.width - 2.5, self.cfg.height - 2.5
-        if all((zx - cx) ** 2 + (zy - cy) ** 2 < 100 for cx, cy in centers):
-            zx, zy = 1.5, 1.5
+        # zombies spawn scattered across the map, never right on top of a
+        # survivor starting cluster
         for _ in range(self.cfg.n_zombies):
-            x = min(max(zx + self.rng.gauss(0, 1.5), 1.5), self.cfg.width - 1.5)
-            y = min(max(zy + self.rng.gauss(0, 1.5), 1.5), self.cfg.height - 1.5)
-            if self.game_map.blocked(int(x), int(y)):
-                x, y = self._rand_open_tile()
+            x, y = self._rand_open_tile()
+            for _try in range(200):
+                cx = self.rng.uniform(1.5, self.cfg.width - 1.5)
+                cy = self.rng.uniform(1.5, self.cfg.height - 1.5)
+                if self.game_map.blocked(int(cx), int(cy)):
+                    continue
+                if all((cx - sx) ** 2 + (cy - sy) ** 2 > 64 for sx, sy in centers):
+                    x, y = cx, cy
+                    break
             self._add_zombie(x, y)
 
     def _add_zombie(self, x, y):
