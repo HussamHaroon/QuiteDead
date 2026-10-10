@@ -57,7 +57,7 @@ def rollout(envs, policy, steps_per_env, gamma, lam):
             next_cur[i] = ob2
             for aid in list(cur[i].keys()):
                 k = (i, aid)
-                if not trajs[k]["alive"]:
+                if k not in trajs or not trajs[k]["alive"]:
                     continue
                 t = trajs[k]
                 t["obs"].append(cur[i][aid])
@@ -116,6 +116,8 @@ def main():
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--run-dir", default=None)
     ap.add_argument("--ckpt-every", type=int, default=50)
+    ap.add_argument("--levels", default=None,
+                    help="YAML with authored levels -> performance-gated curriculum")
     args = ap.parse_args()
 
     torch.set_num_threads(max(1, os.cpu_count() // 2))
@@ -127,6 +129,15 @@ def main():
     envs = [SurvivorEnv(env_index=i, base_seed=args.seed, n_survivors=args.survivors,
                         n_zombies=args.zombies, size=args.size, horizon=args.horizon)
             for i in range(args.envs)]
+    levels = None
+    cur_level = 0
+    recent_surv = []
+    episode_count = 0
+    if args.levels:
+        from zombie_sim.core.levels import load_levels
+        levels = load_levels(args.levels)
+        for env in envs:
+            env.next_level = levels[0]
     for env in envs:
         env.reset()
 
@@ -136,7 +147,7 @@ def main():
     csv_path = os.path.join(run_dir, "metrics.csv")
     csv_f = open(csv_path, "w", newline="", encoding="utf-8")
     wr = csv.writer(csv_f)
-    wr.writerow(["update", "agent_steps", "ep_rew", "surv_rate", "supplies",
+    wr.writerow(["update", "agent_steps", "level", "r_step", "ep_rew", "surv_rate", "supplies",
                  "kills", "turns", "loss", "entropy", "clipfrac", "steps_per_s"])
 
     print(f"QuiteDead RL training | {args.envs} envs x {args.survivors} survivors "
@@ -163,11 +174,39 @@ def main():
             ep_rew = surv = sup = kil = trn = 0.0
 
         sps = total_agent_steps / max(time.time() - t0, 1e-9)
-        wr.writerow([upd, total_agent_steps, f"{mean_rew:.3f}", f"{ep_rew:.1f}", f"{surv:.3f}",
+
+        # ---- curriculum controller ------------------------------------
+        if levels is not None:
+            for env in envs:
+                st = env.last_stats
+                if st is None:
+                    continue
+                env.last_stats = None  # consume
+                episode_count += 1
+                if env.current_level is not None and env.current_level.idx == cur_level:
+                    recent_surv.append(st["survivors"] / args.survivors)
+                # occasional replay of earlier levels so nothing is forgotten
+                if episode_count % 7 == 0 and cur_level > 0:
+                    env.next_level = levels[int(torch.randint(0, cur_level + 1, (1,)).item())]
+            if len(recent_surv) >= 4 and cur_level < len(levels) - 1:
+                mean_surv = sum(recent_surv) / len(recent_surv)
+                if mean_surv >= levels[cur_level].advance_at:
+                    cur_level += 1
+                    recent_surv = []
+                    for env in envs:
+                        env.next_level = levels[cur_level]
+                    print(f"*** ADVANCING to Level {cur_level + 1}: "
+                          f"{levels[cur_level].name} "
+                          f"(survival {mean_surv:.2f} >= {levels[cur_level - 1].advance_at:.2f}) ***",
+                          flush=True)
+
+        lvl_no = cur_level + 1 if levels else 0
+        wr.writerow([upd, total_agent_steps, lvl_no, f"{mean_rew:.3f}", f"{ep_rew:.1f}", f"{surv:.3f}",
                      f"{sup:.1f}", f"{kil:.1f}", f"{trn:.1f}", f"{stats['loss']:.4f}",
                      f"{stats['entropy']:.3f}", f"{stats['clipfrac']:.3f}", f"{sps:.0f}"])
         csv_f.flush()
-        print(f"upd {upd:>5} | steps {total_agent_steps:>8} | r/step {mean_rew:>7.3f} "
+        lvl_tag = f"L{lvl_no} " if levels else ""
+        print(f"upd {upd:>5} {lvl_tag}| steps {total_agent_steps:>8} | r/step {mean_rew:>7.3f} "
               f"| ep_rew {ep_rew:>7.1f} | surv {surv:.2f} | supplies {sup:>5.1f} "
               f"| kills {kil:>4.1f} | turns {trn:>4.1f} | ent {stats['entropy']:.3f} "
               f"| {sps:.0f} a-steps/s",

@@ -25,6 +25,8 @@ def main():
     ap.add_argument("--screenshot", default=None, help="save a frame and exit (with --view)")
     ap.add_argument("--frames", type=int, default=240, help="frames to run before screenshot")
     ap.add_argument("--determinism", action="store_true")
+    ap.add_argument("--levels", default=None, help="levels YAML path")
+    ap.add_argument("--level", type=int, default=None, help="level index to play")
     ap.add_argument("--save-events", default=None, help="write event log JSONL here")
     ap.add_argument("--quiet", action="store_true")
     args = ap.parse_args()
@@ -32,9 +34,16 @@ def main():
     overrides = {"seed": args.seed, "n_survivors": args.survivors, "n_zombies": args.zombies}
     cfg = Config.load(args.config, overrides)
 
+    level = None
+    if args.levels is not None and args.level is not None:
+        from zombie_sim.core.levels import load_levels
+        level = load_levels(args.levels)[args.level]
+        cfg = Config(**{**cfg.to_dict(), "n_zombies": level.n_zombies,
+                        "n_supply_outdoor": 0, "supply_per_building": 0.0})
+
     if args.view:
         from render.viewer import run_viewer
-        run_viewer(cfg, screenshot=args.screenshot, frames=args.frames)
+        run_viewer(cfg, screenshot=args.screenshot, frames=args.frames, level=level)
         return
 
     if args.determinism:

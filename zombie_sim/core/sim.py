@@ -20,11 +20,12 @@ from .brains import fsm, utility
 
 
 class World:
-    def __init__(self, cfg: Config, seed=None):
+    def __init__(self, cfg: Config, seed=None, level=None):
         self.cfg = cfg
         self.seed = cfg.seed if seed is None else seed
         self.rng = random.Random(self.seed)
-        self.game_map = generate_map(self.rng, cfg.width, cfg.height)
+        self.level = level
+        self.game_map = level.map if level is not None else generate_map(self.rng, cfg.width, cfg.height)
         self.noise = NoiseField(cfg.width, cfg.height)
         self.spatial_s = SpatialHash()
         self.spatial_z = SpatialHash()
@@ -61,6 +62,10 @@ class World:
 
     def _spawn_supplies(self):
         kinds = ("food", "water", "meds")
+        if self.level is not None:
+            for x, y, kind in self.level.supplies:
+                self._add_supply(x, y, kind)
+            return
         for (bx, by, bw, bh) in self.game_map.buildings:
             if self.rng.random() < self.cfg.supply_per_building:
                 x = bx + 1 + self.rng.randrange(max(1, bw - 2))
@@ -77,9 +82,12 @@ class World:
         self.supplies[sid] = Supply(sid, x, y, kind)
 
     def _spawn_agents(self):
-        # survivors start clustered around a few road intersections
+        # survivors start clustered around a few road intersections (or level spots)
         road = (ROAD, DOOR)
-        centers = [self._rand_open_tile(road) for _ in range(3)]
+        if self.level is not None and self.level.survivor_spawns:
+            centers = [(x + 0.5, y + 0.5) for x, y in self.level.survivor_spawns]
+        else:
+            centers = [self._rand_open_tile(road) for _ in range(3)]
         skins = itertools.cycle(range(6))
         for i in range(self.cfg.n_survivors):
             cx, cy = centers[i % len(centers)]
@@ -91,8 +99,16 @@ class World:
             s.skin = next(skins)
             self.survivors.append(s)
             self.agents_by_id[s.id] = s
-        # zombies spawn scattered across the map, never right on top of a
-        # survivor starting cluster
+        # zombies spawn scattered (or at authored level spots), never on survivors
+        if self.level is not None and self.level.zombie_spawns:
+            spots = list(self.level.zombie_spawns)
+            self.rng.shuffle(spots)
+            for x, y in spots[:self.cfg.n_zombies]:
+                self._add_zombie(x + 0.5, y + 0.5)
+            for _ in range(max(0, self.cfg.n_zombies - len(spots))):
+                x, y = self._rand_open_tile()
+                self._add_zombie(x, y)
+            return
         for _ in range(self.cfg.n_zombies):
             x, y = self._rand_open_tile()
             for _try in range(200):

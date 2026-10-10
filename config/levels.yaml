@@ -1,0 +1,144 @@
+# QuiteDead campaign — 5 authored levels, escalating difficulty.
+# Curriculum: train on a level until mean survival >= advance_at, then move on.
+- name: "Parking Lot"
+  size: 32
+  n_zombies: 5
+  advance_at: 0.80
+  roads_x: [7, 24]
+  roads_y: [7, 24]
+  plazas: [[9, 9, 14, 14]]
+  buildings:
+    - [2, 2, 7, 5, "S"]
+    - [25, 2, 5, 5, "S"]
+    - [2, 25, 6, 5, "N"]
+    - [25, 25, 5, 5, "N"]
+  food: [[4, 4], [27, 4], [5, 27]]
+  meds: [[4, 5]]
+  water: [[12, 12], [18, 15], [15, 20], [20, 11], [7, 16], [24, 16]]
+  survivor_spawns: [[15, 16], [16, 16], [14, 17], [17, 17], [15, 18], [16, 18], [13, 16], [18, 16]]
+  zombie_spawns: [[4, 27], [27, 27], [4, 3], [27, 3], [16, 3], [16, 28], [2, 16], [29, 16]]
+  props:
+    - ["Objects/Vehicles/Normal/Car_1/Car_1_Blue.png", 11, 11]
+    - ["Objects/Vehicles/Normal/Car_1/Car_1_Green.png", 14, 11]
+    - ["Objects/Vehicles/Normal/Car_3_Van/Car_3_Blue_Van.png", 19, 13]
+    - ["Objects/Vehicles/Normal/Car_7_Truck/Car_7_Red_Truck.png", 11, 19]
+    - ["Objects/Traffic-cone.png", 13, 12]
+    - ["Objects/Traffic-cone.png", 17, 14]
+    - ["Objects/Garbage-Bin_1.png", 8, 7]
+    - ["Objects/Garbage-Bin_1.png", 23, 24]
+
+- name: "Suburb Blocks"
+  size: 32
+  n_zombies: 10
+  advance_at: 0.65
+  roads_x: [5, 15, 25]
+  roads_y: [5, 15, 25]
+  buildings:
+    - [7, 2, 6, 5, "S"]
+    - [17, 2, 6, 5, "S"]
+    - [27, 2, 3, 5, "S"]
+    - [7, 26, 6, 4, "N"]
+    - [17, 26, 6, 4, "N"]
+    - [27, 26, 3, 4, "N"]
+    - [8, 17, 5, 6, "W"]
+    - [18, 8, 5, 6, "W"]
+  food: [[9, 4], [19, 4], [28, 4], [9, 28], [19, 28], [28, 28]]
+  meds: [[10, 20], [20, 10]]
+  water: [[6, 12], [16, 22], [26, 12], [6, 22], [26, 22], [16, 2]]
+  survivor_spawns: [[16, 12], [17, 12], [16, 18], [17, 18], [12, 16], [13, 16], [20, 16], [20, 17]]
+  zombie_spawns: [[2, 2], [28, 4], [2, 29], [28, 28], [10, 10], [21, 10], [10, 21], [21, 21], [28, 16], [3, 16]]
+  props:
+    - ["Objects/Garbage-Bin_1.png", 6, 10]
+    - ["Objects/Garbage-Bin_2.png", 26, 10]
+    - ["Objects/Hydrant_1_red.png", 14, 24]
+    - ["Objects/Hydrant_1_red.png", 4, 14]
+    - ["Objects/Street-Light_2_Up.png", 10, 7]
+    - ["Objects/Street-Light_2_Up.png", 20, 24]
+    - ["Objects/Vehicles/Normal/Car_1/Car_1_Orange.png", 22, 18]
+    - ["Objects/Vehicles/Normal/Car_1/Car_1_Gray.png", 22, 20]
+
+- name: "Market Street"
+  size: 32
+  n_zombies: 13
+  advance_at: 0.60
+  roads_x: [4, 27]
+  roads_y: [12, 19]
+  plazas: [[6, 13, 20, 6]]
+  buildings:
+    - [7, 3, 8, 6, "S"]
+    - [18, 3, 8, 6, "S"]
+    - [7, 22, 8, 7, "N"]
+    - [18, 22, 8, 7, "N"]
+  food: [[9, 5], [20, 5], [9, 25], [20, 25], [12, 15], [17, 16]]
+  meds: [[8, 26], [22, 4]]
+  water: [[10, 14], [15, 17], [21, 14], [4, 8], [27, 10]]
+  survivor_spawns: [[13, 16], [14, 16], [15, 16], [16, 16], [13, 17], [14, 17], [15, 17], [16, 17]]
+  zombie_spawns: [[2, 2], [29, 2], [2, 29], [29, 29], [2, 16], [29, 16], [12, 2], [19, 2], [12, 29], [19, 29], [26, 10], [6, 8], [26, 24], [6, 24]]
+  props:
+    - ["Objects/Vending-machine_Red.png", 11, 13]
+    - ["Objects/Vending-machine_Blue.png", 20, 18]
+    - ["Objects/Bench_1_down.png", 14, 19]
+    - ["Objects/Bench_1_down.png", 18, 13]
+    - ["Objects/Shopping-cart.png", 22, 15]
+    - ["Objects/Trash-bag_1.png", 8, 17]
+    - ["Objects/Trash-bag_2.png", 23, 16]
+    - ["Objects/Street-Light_2_Up.png", 6, 12]
+    - ["Objects/Street-Light_2_Up.png", 25, 19]
+
+- name: "Hospital Compound"
+  size: 32
+  n_zombies: 16
+  advance_at: 0.55
+  roads_x: [16]
+  roads_y: [22]
+  plazas: [[4, 24, 24, 6]]
+  buildings:
+    - [10, 4, 14, 10, "S"]
+    - [10, 14, 6, 8, "E"]
+  food: [[6, 26], [12, 27], [20, 26], [26, 27]]
+  meds: [[12, 6], [14, 6], [16, 6], [18, 6], [12, 8], [18, 8], [13, 16], [13, 18]]
+  water: [[8, 25], [16, 25], [24, 25], [6, 29], [22, 29]]
+  survivor_spawns: [[14, 26], [15, 26], [16, 26], [14, 27], [15, 27], [16, 27], [14, 28], [17, 26]]
+  zombie_spawns: [[2, 2], [29, 2], [2, 29], [29, 29], [2, 12], [29, 12], [12, 2], [21, 2], [8, 20], [24, 20], [2, 22], [29, 22], [16, 2], [7, 29]]
+  props:
+    - ["Objects/Vehicles/Normal/Car_3_Van/Car_3_Blue_Van.png", 12, 25]
+    - ["Objects/Vehicles/Normal/Car_3_Van/Car_3_Light-Green_Van.png", 19, 26]
+    - ["Objects/Vehicles/Normal/Car_8_Bus/Car_8_Yellow_Bus.png", 25, 28]
+    - ["Objects/Traffic-cone.png", 10, 26]
+    - ["Objects/Traffic-cone.png", 21, 26]
+    - ["Objects/Pallet_1.png", 5, 24]
+    - ["Objects/Cardboard_1.png", 27, 24]
+
+- name: "Downtown Siege"
+  size: 32
+  n_zombies: 22
+  advance_at: 0.50
+  roads_x: [3, 14, 25]
+  roads_y: [3, 14, 25]
+  buildings:
+    - [5, 5, 7, 7, "W"]
+    - [17, 5, 6, 7, "S"]
+    - [27, 5, 3, 7, "W"]
+    - [5, 17, 7, 6, "S"]
+    - [17, 17, 6, 6, "E"]
+    - [27, 17, 3, 6, "S"]
+    - [5, 27, 7, 3, "N"]
+    - [17, 27, 6, 3, "N"]
+    - [27, 27, 3, 3, "N"]
+  food: [[7, 8], [19, 8], [28, 20], [7, 19], [19, 20], [7, 28], [19, 28]]
+  meds: [[6, 20], [20, 6], [28, 28]]
+  water: [[4, 10], [15, 10], [26, 10], [4, 22], [15, 22], [26, 22], [10, 15], [22, 15]]
+  survivor_spawns: [[14, 16], [15, 16], [14, 17], [15, 17], [14, 12], [15, 12], [14, 21], [15, 21]]
+  zombie_spawns: [[2, 2], [29, 2], [2, 29], [26, 26], [9, 12], [22, 12], [9, 21], [23, 21], [2, 9], [26, 9], [2, 22], [26, 22]]
+  props:
+    - ["Objects/Vehicles/Normal/Car_1/Car_1_Blue.png", 9, 14]
+    - ["Objects/Vehicles/Normal/Car_1/Car_1_Gray.png", 19, 14]
+    - ["Objects/Vehicles/Normal/Car_7_Truck/Car_7_Red_Truck.png", 14, 9]
+    - ["Objects/Barrel_red_1.png", 8, 24]
+    - ["Objects/Barrel_blue_1.png", 23, 8]
+    - ["Objects/Cardboard_1.png", 12, 20]
+    - ["Objects/Pallet_1.png", 20, 24]
+    - ["Objects/Trash-bag_1.png", 6, 14]
+    - ["Objects/Trash-can_1.png", 24, 21]
+    - ["Objects/Traffic-cone.png", 13, 8]
+    - ["Objects/Traffic-cone.png", 18, 23]

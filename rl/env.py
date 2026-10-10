@@ -116,21 +116,32 @@ class SurvivorEnv:
     """One parallel environment instance wrapping a fresh World per episode."""
 
     def __init__(self, env_index=0, base_seed=1, n_survivors=8, n_zombies=2,
-                 size=32, horizon=1500):
+                 size=32, horizon=1500, level=None):
         self.env_index = env_index
         self.base_seed = base_seed
         self.horizon = horizon
         self.base_cfg = Config(width=size, height=size,
                                n_survivors=n_survivors, n_zombies=n_zombies,
                                seed=base_seed)
+        self.fixed_level = level   # authored Level or None (procedural map)
+        self.next_level = None     # set by the curriculum controller
+        self.current_level = level
         self.world = None
         self.episode = 0
         self.last_stats = None
 
     def reset(self):
+        lvl = self.next_level if self.next_level is not None else self.fixed_level
+        self.next_level = None
+        self.current_level = lvl
         seed = self.base_seed * 100000 + self.episode * 7919
-        cfg = Config(**{**self.base_cfg.to_dict(), "seed": seed})
-        self.world = World(cfg)
+        overrides = {"seed": seed}
+        if lvl is not None:
+            overrides["n_zombies"] = lvl.n_zombies
+            overrides["n_supply_outdoor"] = 0
+            overrides["supply_per_building"] = 0.0
+        cfg = Config(**{**self.base_cfg.to_dict(), **overrides})
+        self.world = World(cfg, level=lvl)
         for s in self.world.survivors:
             s.rl = True
         self.episode += 1
