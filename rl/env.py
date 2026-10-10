@@ -36,7 +36,21 @@ R_GUN = 1.0       # bonus for picking up a gun (loot event with kind == "gun")
 R_QUOTA = 6.0     # per living survivor when the level's stockpile quota is met
 R_SHAPE = 0.1     # potential-based shaping coefficient (Ng et al. 1999: F = g*phi' - phi
                   # preserves the optimal policy while giving a dense gradient)
+R_AVOID = 0.05    # threat-avoidance shaping: reward keeping distance from visible zombies
 PBRS_GAMMA = 0.995  # must match the PPO discount
+
+
+def _threat_potential(world, s):
+    """Distance to the nearest visible zombie — higher is safer. Full vision
+    range when nothing is visible (treated as maximally safe)."""
+    vr = world.cfg.vision_range
+    best = None
+    for z in world.spatial_z.query(s.x, s.y, vr):
+        if z.alive and can_see(world.game_map, s, z.x, z.y, vr, world.cfg.vision_fov_deg):
+            d = math.hypot(z.x - s.x, z.y - s.y)
+            if best is None or d < best:
+                best = d
+    return vr if best is None else best
 
 
 def _potential(world, s):
@@ -247,6 +261,7 @@ class SurvivorEnv:
 
         log_i0 = len(w.log.events)
         phi_before = {s.id: _potential(w, s) for s in w.survivors if s.alive}
+        thr_before = {s.id: _threat_potential(w, s) for s in w.survivors if s.alive}
         w.step()
         update_senses(w)
 
@@ -276,12 +291,15 @@ class SurvivorEnv:
 
         survivors_alive, _, _ = w.counts()
 
-        # dense shaping: reward every tick that closes in on the objective
+        # dense shaping: reward every tick that closes in on the objective AND
+        # every tick that keeps distance from visible threats
         for s in w.survivors:
             if s.alive and s.id in phi_before:
                 phi_after = _potential(w, s)
-                rew[s.id] = rew.get(s.id, 0.0) + \
-                    R_SHAPE * (PBRS_GAMMA * phi_after - phi_before[s.id])
+                thr_after = _threat_potential(w, s)
+                rew[s.id] = rew.get(s.id, 0.0) + R_SHAPE * (
+                    PBRS_GAMMA * phi_after - phi_before[s.id]) \
+                    + R_AVOID * (PBRS_GAMMA * thr_after - thr_before[s.id])
 
         done = survivors_alive == 0 or w.t >= self.horizon
         if done:
