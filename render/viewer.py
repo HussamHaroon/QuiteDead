@@ -124,12 +124,13 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
     background = _prerender_map(world, getattr(bank, "map_tiles", None))
     rot_cache = {}
     selected = next((s for s in world.survivors if s.alive), None)
-    ticks_per_frame = 1
+    ticks_per_frame = 10 if screenshot else 1  # screenshot runs are for verification
     paused = False
     show_cone = True
     show_noise = False
     show_daynight = True
     night_overlay = pygame.Surface((m_px, m_px), pygame.SRCALPHA)
+    extinct = False
 
     overlay = pygame.Surface((m_px, m_px), pygame.SRCALPHA)
     done = False
@@ -151,16 +152,23 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                     show_noise = not show_noise
                 elif ev.key == pygame.K_t:
                     show_daynight = not show_daynight
+                elif ev.key == pygame.K_r and extinct:
+                    world = _make_world(cfg, level=level)
+                    background = _prerender_map(world, getattr(bank, "map_tiles", None))
+                    selected = next((s for s in world.survivors if s.alive), None)
+                    extinct = False
                 elif ev.key == pygame.K_TAB:
                     alive = [s for s in world.survivors if s.alive]
                     if alive:
                         idx = (alive.index(selected) + 1) % len(alive) if selected in alive else 0
                         selected = alive[idx]
 
-        if not paused:
+        if not paused and not extinct:
             for _ in range(ticks_per_frame):
                 world.step()
             frame += ticks_per_frame
+            if world.counts()[0] == 0:
+                extinct = True
 
         screen.fill((16, 16, 20))
         screen.blit(background, (0, 0))
@@ -215,6 +223,17 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
             px, py = _to_px(selected.x, selected.y)
             pygame.draw.circle(screen, (255, 255, 255), (int(px), int(py)), TILE, 1)
 
+        if extinct:
+            box = pygame.Surface((m_px, 90), pygame.SRCALPHA)
+            box.fill((10, 10, 14, 215))
+            screen.blit(box, (0, m_px // 2 - 45))
+            big = pygame.font.SysFont("consolas", 26, bold=True)
+            t1 = big.render("ALL SURVIVORS LOST", True, (235, 90, 90))
+            t2 = font.render("the outbreak is over  -  press R for a new outbreak, ESC to quit",
+                             True, (220, 220, 220))
+            screen.blit(t1, t1.get_rect(center=(m_px // 2, m_px // 2 - 14)))
+            screen.blit(t2, t2.get_rect(center=(m_px // 2, m_px // 2 + 16)))
+
         pygame.draw.rect(screen, (24, 24, 30), (0, m_px, m_px, HUD_H))
         surv, inf, zomb = world.counts()
         loot = world.log.count("loot")
@@ -235,7 +254,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                                 True, (120, 120, 130)), (m_px - 430, m_px + 24))
         pygame.display.flip()
 
-        if screenshot and frame >= frames:
+        if screenshot and (frame >= frames or extinct):
             pygame.image.save(screen, screenshot)
             done = True
         clock.tick(60)
