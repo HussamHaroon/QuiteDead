@@ -131,6 +131,14 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
     show_daynight = True
     night_overlay = pygame.Surface((m_px, m_px), pygame.SRCALPHA)
     extinct = False
+    extinct_at = 0
+
+    def _new_outbreak():
+        nonlocal world, background, selected, extinct
+        world = _make_world(cfg, level=level)
+        background = _prerender_map(world, getattr(bank, "map_tiles", None))
+        selected = next((s for s in world.survivors if s.alive), None)
+        extinct = False
 
     overlay = pygame.Surface((m_px, m_px), pygame.SRCALPHA)
     done = False
@@ -153,10 +161,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                 elif ev.key == pygame.K_t:
                     show_daynight = not show_daynight
                 elif ev.key == pygame.K_r and extinct:
-                    world = _make_world(cfg, level=level)
-                    background = _prerender_map(world, getattr(bank, "map_tiles", None))
-                    selected = next((s for s in world.survivors if s.alive), None)
-                    extinct = False
+                    _new_outbreak()
                 elif ev.key == pygame.K_TAB:
                     alive = [s for s in world.survivors if s.alive]
                     if alive:
@@ -169,6 +174,9 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
             frame += ticks_per_frame
             if world.counts()[0] == 0:
                 extinct = True
+                extinct_at = pygame.time.get_ticks()
+        elif extinct and pygame.time.get_ticks() - extinct_at > 2500:
+            _new_outbreak()  # auto-restart after the banner beat
 
         screen.fill((16, 16, 20))
         screen.blit(background, (0, 0))
@@ -229,7 +237,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
             screen.blit(box, (0, m_px // 2 - 45))
             big = pygame.font.SysFont("consolas", 26, bold=True)
             t1 = big.render("ALL SURVIVORS LOST", True, (235, 90, 90))
-            t2 = font.render("the outbreak is over  -  press R for a new outbreak, ESC to quit",
+            t2 = font.render("restarting outbreak...  (R = restart now, ESC = quit)",
                              True, (220, 220, 220))
             screen.blit(t1, t1.get_rect(center=(m_px // 2, m_px // 2 - 14)))
             screen.blit(t2, t2.get_rect(center=(m_px // 2, m_px // 2 + 16)))
