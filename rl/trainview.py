@@ -9,6 +9,7 @@ Episodes auto-restart; banners show the result of each attempt.
 import argparse
 import math
 import os
+import pickle
 import sys
 import time
 
@@ -47,7 +48,7 @@ def main():
         try:
             policy.load_state_dict(torch.load(ckpt_path, map_location="cpu"))
             break
-        except (OSError, RuntimeError):
+        except (OSError, RuntimeError, EOFError, pickle.UnpicklingError):
             if waited == 0.0:
                 print(f"waiting for the first readable checkpoint in {args.run_dir} ...",
                       flush=True)
@@ -60,7 +61,8 @@ def main():
     train_upd = "?"
     zpolicy = None
     if args.zomb_ckpt:
-        from zenv import Z_OBS_DIM, Z_ACT_DIM
+        from zenv import (OBS_DIM as Z_OBS_DIM, ACT_DIM as Z_ACT_DIM,   # noqa: E402
+                          obs_for_zombie, apply_action_zombie)
         zpolicy = ActorCritic(Z_OBS_DIM, Z_ACT_DIM)
         zpolicy.load_state_dict(torch.load(args.zomb_ckpt, map_location="cpu"))
         zpolicy.eval()
@@ -128,6 +130,9 @@ def main():
                     apply_action(w, s, int(a[0]))
             if zpolicy is not None:
                 import numpy as _np
+                for z in w.zombies:
+                    if z.alive:
+                        z.rl = True  # policy owns zombies — incl. reanimated ones
                 zobs = [obs_for_zombie(w, z) for z in w.zombies if z.alive]
                 if zobs:
                     zacts, _, _ = zpolicy.act(_np.stack(zobs), deterministic=True)
@@ -164,7 +169,7 @@ def main():
                 if os.path.getmtime(ckpt_path) != loaded_at:
                     policy.load_state_dict(torch.load(ckpt_path, map_location="cpu"))
                     loaded_at = os.path.getmtime(ckpt_path)
-            except (OSError, RuntimeError):
+            except (OSError, RuntimeError, EOFError, pickle.UnpicklingError):
                 pass
             _read_trainer_state()
             episode += 1
@@ -268,15 +273,17 @@ def main():
             if s.alive:
                 moving = s.vel != (0.0, 0.0) or s.path is not None
                 img = bank.survivor(s.heading, moving, af, skin=s.skin, cache=rot_cache)
-                r = img.get_rect(center=_to_px(s.x, s.y))
-                screen.blit(img, r)
-                if s.infected:
-                    pygame.draw.circle(screen, (90, 230, 90), r.center, 12, 1)
+                if img is not None:  # TLS bank returns None if a sheet is missing
+                    r = img.get_rect(center=_to_px(s.x, s.y))
+                    screen.blit(img, r)
+                    if s.infected:
+                        pygame.draw.circle(screen, (90, 230, 90), r.center, 12, 1)
         for z in w.zombies:
             if z.alive:
                 moving = z.vel != (0.0, 0.0)
                 img = bank.zombie(z.id % 3, z.heading, moving, af, cache=rot_cache)
-                screen.blit(img, img.get_rect(center=_to_px(z.x, z.y)))
+                if img is not None:
+                    screen.blit(img, img.get_rect(center=_to_px(z.x, z.y)))
 
         if banner is not None:
             box = pygame.Surface((m_px, 90), pygame.SRCALPHA)

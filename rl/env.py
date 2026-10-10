@@ -201,7 +201,9 @@ def apply_action(world, s, a):
                 if d < best:
                     best, z = d, o
         s.vel = (0.0, 0.0)
-        if z is not None and s.cooldown <= 0:
+        # spatial query over-approximates cell overlap — enforce true reach so
+        # an out-of-range target can't burn the attack cooldown on a whiff
+        if z is not None and best <= reach * reach and s.cooldown <= 0:
             s.state_label = "ENGAGE"
             s.action = ("attack", z.id)
         else:
@@ -252,6 +254,10 @@ class SurvivorEnv:
             cfg.thirst_rate = round(cfg.thirst_rate * jitter, 5)
             cfg.hunger_rate = round(cfg.hunger_rate * jitter, 5)
         self.world = World(cfg, level=lvl)
+        # spatial hashes start empty (World.step rebuilds them, but the first
+        # step's shaping would otherwise read the pre-reset state as empty)
+        self.world.spatial_z.rebuild(self.world.zombies)
+        self.world.spatial_s.rebuild(self.world.survivors)
         for s in self.world.survivors:
             s.rl = True
         self.episode += 1
@@ -301,11 +307,6 @@ class SurvivorEnv:
 
         survivors_alive, _, _ = w.counts()
 
-        # episode reward accumulator (metrics previously summed the final
-        # tick only — last_stats["reward"] was meaningless)
-        self._ep_reward += sum(v for v in
-                               (rew.get(s.id, 0.0) for s in w.survivors if s.alive))
-
         # dense shaping: reward every tick that closes in on the objective AND
         # every tick that keeps distance from visible threats
         for s in w.survivors:
@@ -329,8 +330,15 @@ class SurvivorEnv:
             for s in w.survivors:
                 if s.alive:
                     rew[s.id] = rew.get(s.id, 0.0) + R_QUOTA * quota_met + R_SURVIVE
+
+        # episode reward accumulator: sum every component of every tick
+        # (R_STEP, needs, events, shaping, terminal bonuses) so last_stats
+        # carries the true episode return, not the final tick's bonuses alone
+        self._ep_reward += sum(rew.values())
+
+        if done:
             self.last_stats = {
-                "reward": float(sum(rew.values())),
+                "reward": float(self._ep_reward),
                 "survivors": survivors_alive,
                 "supplies": w.log.count("loot"),
                 "kills": w.log.count("kill"),

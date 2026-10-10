@@ -99,15 +99,17 @@ def main():
             if s.alive:
                 moving = s.vel != (0.0, 0.0) or s.path is not None
                 img = bank.survivor(s.heading, moving, af, skin=s.skin, cache=rot_cache)
-                r = img.get_rect(center=_to_px(s.x, s.y))
-                screen.blit(img, r)
-                if s.infected:
-                    pygame.draw.circle(screen, (90, 230, 90), r.center, 12, 1)
+                if img is not None:  # TLS bank returns None if a sheet is missing
+                    r = img.get_rect(center=_to_px(s.x, s.y))
+                    screen.blit(img, r)
+                    if s.infected:
+                        pygame.draw.circle(screen, (90, 230, 90), r.center, 12, 1)
         for z in w.zombies:
             if z.alive:
                 moving = z.vel != (0.0, 0.0)
                 img = bank.zombie(z.id % 3, z.heading, moving, af, cache=rot_cache)
-                screen.blit(img, img.get_rect(center=_to_px(z.x, z.y)))
+                if img is not None:
+                    screen.blit(img, img.get_rect(center=_to_px(z.x, z.y)))
 
         pygame.draw.rect(screen, (24, 24, 30), (0, m_px, m_px, HUD_H))
         surv, inf, zomb = w.counts()

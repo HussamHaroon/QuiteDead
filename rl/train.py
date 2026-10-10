@@ -259,12 +259,13 @@ def main():
             torch.save(policy.state_dict(),
                        os.path.join(run_dir, f"ckpt_{upd:05d}.pt"))
 
-        # ---- held-out evaluation: the train/test split ------------------
-        # run the current policy on levels it NEVER trains on (everything
-        # except the gated curriculum level), deterministic, no learning.
-        # Train score up + eval flat = overfitting; both up = generalizing.
+        # ---- evaluation: generalization check ---------------------------
+        # run the current policy on every level except the current curriculum
+        # level, deterministic, no learning. The `trained` column marks levels
+        # the curriculum already passed (still replayed) — those rows are NOT
+        # held out. Train score up + eval flat = overfitting; both up = generalizing.
         if args.eval_every and upd % args.eval_every == 0 and levels and len(levels) > 1:
-            for lvl in levels[1:]:
+            for lvl in levels[1:][:max(0, args.eval_eps)]:
                 eenv = SurvivorEnv(base_seed=777 + lvl.idx, n_survivors=args.survivors,
                                    n_zombies=lvl.n_zombies, size=lvl.map.w,
                                    horizon=1500, level=lvl)
