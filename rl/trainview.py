@@ -33,6 +33,8 @@ def main():
     ap.add_argument("--run-dir", required=True, help="training run dir with policy.pt")
     ap.add_argument("--levels", default=None)
     ap.add_argument("--survivors", type=int, default=6)
+    ap.add_argument("--zomb-ckpt", default=None,
+                    help="zombie policy checkpoint (default: scripted FSM zombies)")
     ap.add_argument("--horizon", type=int, default=4000)
     ap.add_argument("--seed", type=int, default=12345)
     args = ap.parse_args()
@@ -56,6 +58,12 @@ def main():
     policy.eval()
     loaded_at = os.path.getmtime(ckpt_path)
     train_upd = "?"
+    zpolicy = None
+    if args.zomb_ckpt:
+        from zenv import Z_OBS_DIM, Z_ACT_DIM
+        zpolicy = ActorCritic(Z_OBS_DIM, Z_ACT_DIM)
+        zpolicy.load_state_dict(torch.load(args.zomb_ckpt, map_location="cpu"))
+        zpolicy.eval()
     trainer_level = 0  # which level the trainer is actually on (from its metrics)
 
     def _read_trainer_state():
@@ -118,6 +126,13 @@ def main():
                 if s.alive:
                     a, _, _ = policy.act(obs_for(w, s)[None], deterministic=True)
                     apply_action(w, s, int(a[0]))
+            if zpolicy is not None:
+                import numpy as _np
+                zobs = [obs_for_zombie(w, z) for z in w.zombies if z.alive]
+                if zobs:
+                    zacts, _, _ = zpolicy.act(_np.stack(zobs), deterministic=True)
+                    for z, a in zip([z for z in w.zombies if z.alive], zacts):
+                        apply_action_zombie(w, z, int(a))
             auto_consume(w)
             w.step()
             update_senses(w)
