@@ -44,7 +44,8 @@ def _prerender_map(world, tiles=None):
             r = pygame.Rect(x * TILE, y * TILE, TILE, TILE)
             t = m.tiles[y][x]
             if tiles is not None and t in tiles:
-                surf.blit(tiles[t], r)
+                variants = tiles[t]
+                surf.blit(variants[(x * 7 + y * 13) % len(variants)], r)
                 if t == 3:  # wall: top highlight for depth
                     pygame.draw.line(surf, (90, 30, 40), r.topleft, (r.right - 1, r.top))
                 continue

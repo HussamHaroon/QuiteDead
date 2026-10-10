@@ -1,9 +1,12 @@
 """Authored levels: YAML-defined maps with buildings, supplies, spawns and props.
 
 Each level is a fixed hand-designed scenario; the training curriculum advances
-through them by performance (see rl/train.py).
+through them by performance (see rl/train.py). Props can be listed explicitly
+or scattered by rule (sprite, count, tile type) with a per-level seeded RNG so
+the result is deterministic.
 """
 import os
+import random
 
 import yaml
 
@@ -89,7 +92,28 @@ def _build(idx, d):
             raise ValueError(f"level '{d.get('name', idx)}': spawn at ({x},{y}) is on a wall")
 
     props = [(p[0], int(p[1]), int(p[2])) for p in d.get("props", [])]
+    props += _scatter_props(idx, m, d, supplies,
+                            [tuple(s) for s in d.get("survivor_spawns", [])],
+                            [tuple(z) for z in d.get("zombie_spawns", [])])
     return Level(idx, d.get("name", f"level_{idx}"), m, supplies,
                  [tuple(s) for s in d.get("survivor_spawns", [])],
                  [tuple(z) for z in d.get("zombie_spawns", [])],
                  props, int(d.get("n_zombies", 8)), float(d.get("advance_at", 0.6)))
+
+
+def _scatter_props(idx, m, d, supplies, surv_spawns, zombie_spawns):
+    """Deterministically sprinkle decorative props on matching tiles."""
+    rng = random.Random(1000 + idx * 77)
+    taken = {(int(x), int(y)) for x, y, _ in supplies}
+    taken |= set(surv_spawns) | set(zombie_spawns)
+    out = []
+    for rule in d.get("scatter", []):
+        on = rule.get("on", "GRASS").upper()
+        allowed = {ROAD, DOOR} if on == "ROAD" else {GRASS}
+        spots = [(x, y) for y in range(1, m.h - 1) for x in range(1, m.w - 1)
+                 if m.tiles[y][x] in allowed and (x, y) not in taken]
+        rng.shuffle(spots)
+        for x, y in spots[:int(rule.get("n", 10))]:
+            out.append((rule["sprite"], x, y))
+            taken.add((x, y))
+    return out

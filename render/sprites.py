@@ -62,7 +62,11 @@ class TLSSprites:
         self._load_map_tiles()
 
     def _load_map_tiles(self):
-        """Crop ground/wall tiles from the pack's tilesets, scaled 2x like the agents."""
+        """Crop ground/wall tiles from the pack's tilesets, scaled 2x.
+
+        Each tile id maps to a list of variants; the viewer picks one
+        deterministically per tile coordinate so the ground looks organic.
+        """
         ts_path = os.path.join(self.base, "Tiles", "Background_Green_TileSet.png")
         wall_path = os.path.join(self.base, "Tiles", "Brick-Wall_TileSet.png")
         if not (os.path.exists(ts_path) and os.path.exists(wall_path)):
@@ -74,11 +78,12 @@ class TLSSprites:
             return pygame.transform.scale_by(img.subsurface((tx * 16, ty * 16, 16, 16)), 2)
 
         self.map_tiles = {
-            0: tile(ts, 0, 0),      # grass
-            1: tile(ts, 0, 7),      # road asphalt
-            2: tile(ts, 4, 11),     # wooden floor (interior)
-            3: pygame.transform.scale_by(brick.subsurface((0, 0, 16, 16)), 2),  # brick wall
-            4: tile(ts, 5, 1),      # doorway -> distinct tan path tile
+            0: [tile(ts, 0, 0), tile(ts, 0, 0), tile(ts, 0, 0), tile(ts, 3, 1)],   # grass + flower decor
+            1: [tile(ts, 4, 7), tile(ts, 5, 9), tile(ts, 3, 7), tile(ts, 3, 8),
+                tile(ts, 3, 9), tile(ts, 4, 7), tile(ts, 5, 9)],                    # asphalt + markings
+            2: [tile(ts, 3, 11), tile(ts, 4, 11), tile(ts, 5, 11)],                 # wooden floors
+            3: [tile(brick, 0, 0), tile(brick, 4, 0), tile(brick, 5, 1)],           # brick walls
+            4: [tile(ts, 4, 11)],                                                   # doorway (wood)
         }
 
     def _load(self, folder, anim):

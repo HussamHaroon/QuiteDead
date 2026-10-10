@@ -38,7 +38,8 @@ def main():
     if args.levels is not None and args.level is not None:
         from zombie_sim.core.levels import load_levels
         level = load_levels(args.levels)[args.level]
-        cfg = Config(**{**cfg.to_dict(), "n_zombies": level.n_zombies,
+        cfg = Config(**{**cfg.to_dict(), "width": level.map.w, "height": level.map.h,
+                        "n_zombies": level.n_zombies,
                         "n_supply_outdoor": 0, "supply_per_building": 0.0})
 
     if args.view:
