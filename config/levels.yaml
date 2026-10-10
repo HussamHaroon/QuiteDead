@@ -1,3 +1,30 @@
+# QuiteDead campaign — objective-only win: meet the stockpile quota before the
+# squad dies. No deadline; reinforcement trickle makes stalling progressively harder.
+- name: "Training Grounds"
+  size: 32
+  n_zombies: 1
+  advance_at: 0.80
+  win_stock: 8
+  roads_x: [8, 24]
+  roads_y: [16]
+  buildings:
+    - [3, 3, 8, 6, "S"]
+  safehouse: [21, 12, 8, 7]
+  food: [[23, 14], [25, 16], [27, 14], [24, 17], [6, 5], [8, 6], [9, 4]]
+  water: [[22, 16], [26, 17], [28, 13], [4, 17], [6, 18], [28, 20]]
+  meds: [[24, 13], [5, 6]]
+  guns: [[4, 4], [26, 13]]
+  ammo: [[5, 4], [27, 16], [9, 7]]
+  survivor_spawns: [[23, 15], [24, 15], [25, 15], [23, 16], [24, 16], [25, 16], [23, 17], [24, 17]]
+  zombie_spawns: [[3, 28], [28, 28]]
+  props:
+    - ["Objects/Vehicles/Normal/Car_1/Car_1_Blue.png", 14, 18]
+    - ["Objects/Vehicles/Normal/Car_1/Car_1_Green.png", 18, 18]
+    - ["Objects/Traffic-cone.png", 20, 14]
+  scatter:
+    - {sprite: "Objects/Nature/Green/Grass_2_Green.png", n: 35, on: GRASS}
+    - {sprite: "Objects/Nature/Flowers_Mashrooms_Other-nature-stuff/Flower_1_yellow.png", n: 12, on: GRASS}
+
 # QuiteDead campaign — 5 authored levels, escalating difficulty.
 # Curriculum: train on a level until mean survival >= advance_at, then move on.
 # 'scatter' rules sprinkle decorative props deterministically (seeded per level).
