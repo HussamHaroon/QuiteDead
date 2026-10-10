@@ -107,7 +107,7 @@ def think(world, s):
                 s.heading = math.atan2(nearest.y - s.y, nearest.x - s.x)
                 return
             s.state_label = "FLEEING"
-            _flee(s, threats, cfg)
+            _flee(world, s, threats, cfg)
             return
 
     # 2. NEEDS
@@ -177,13 +177,21 @@ def _goto(s, m, tx, ty):
     return True
 
 
-def _flee(s, threats, cfg):
+def _flee(world, s, threats, cfg):
     vx = vy = 0.0
     for z in threats:
         dx, dy = s.x - z.x, s.y - z.y
         d = max(0.3, math.hypot(dx, dy))
         vx += dx / d / d
         vy += dy / d / d
+    # bias the escape toward the safe house: running "away" from one zombie
+    # often runs into another — running home is both escape and progress
+    if world is not None and world.safehouse is not None:
+        x0, y0, sw, sh = world.safehouse
+        hx, hy = x0 + sw / 2.0 - s.x, y0 + sh / 2.0 - s.y
+        hd = max(0.3, math.hypot(hx, hy))
+        vx += hx / hd * 0.6
+        vy += hy / hd * 0.6
     n = math.hypot(vx, vy) or 1.0
     s.path = None
     s.goal = None

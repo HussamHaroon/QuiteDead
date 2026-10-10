@@ -27,7 +27,8 @@ DIRS = [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1)]
 R_LOOT = 2.0
 R_KILL = 1.0      # combat pays, but the MISSION must pay more: a 3-item deposit
                   # run (+9) beats any kill; this kills the brawl-and-die local optimum
-R_BITE = -4.0
+R_BITE = -6.0     # a bite is a near-certain death sentence — the immediate
+                  # signal must reflect that or avoidance never wins the tug-of-war
 R_DEATH = -10.0
 R_STEP = -0.002
 R_NEED = -0.004
@@ -37,7 +38,8 @@ R_GUN = 1.0       # bonus for picking up a gun (loot event with kind == "gun")
 R_QUOTA = 6.0     # per living survivor when the level's stockpile quota is met
 R_SHAPE = 0.1     # potential-based shaping coefficient (Ng et al. 1999: F = g*phi' - phi
                   # preserves the optimal policy while giving a dense gradient)
-R_AVOID = 0.05    # threat-avoidance shaping: reward keeping distance from visible zombies
+R_AVOID = 0.10    # threat-avoidance shaping: equal weight to objective pull, so
+                  # "walk through the zombie to the supply" is never net-positive
 PBRS_GAMMA = 0.995  # must match the PPO discount
 
 
