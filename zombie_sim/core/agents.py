@@ -20,10 +20,12 @@ class Agent:
 class Survivor(Agent):
     __slots__ = ("hp", "hunger", "thirst", "inventory", "infected", "infection",
                  "fear", "memory_z", "memory_sup", "path", "path_i", "action",
-                 "cooldown", "fleeing", "goal")
+                 "cooldown", "fleeing", "goal", "rl")
 
     def __init__(self, aid, x, y, hp=100.0):
         super().__init__(aid, "survivor", x, y)
+        self.hp = hp
+        self.rl = False  # True when an RL policy drives this agent instead of a scripted brain
         self.hp = hp
         self.hunger = 0.0
         self.thirst = 0.0

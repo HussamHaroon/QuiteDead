@@ -125,6 +125,7 @@ def survivor_attacks(world):
             z.hp -= cfg.melee_damage
             if z.hp <= 0:
                 die(world, z, "killed_by_survivor")
+                world.log.add(world.t, "kill", killer=s.id, who=z.id)
 
 
 def infection_tick(world):

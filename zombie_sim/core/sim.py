@@ -118,7 +118,7 @@ class World:
         self.noise.decay(cfg.noise_decay)
 
         for s in self.survivors:
-            if s.alive:
+            if s.alive and not s.rl:
                 utility.think(self, s)
         for z in self.zombies:
             if z.alive:
