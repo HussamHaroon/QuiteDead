@@ -44,6 +44,8 @@
   size: 48
   n_zombies: 14
   advance_at: 0.65
+  theme:
+    ground: "Green"
   roads_x: [5, 16, 27, 38]
   roads_y: [5, 16, 27, 38]
   buildings:
@@ -69,15 +71,19 @@
     - ["Objects/Vehicles/Normal/Car_1/Car_1_Gray.png", 34, 28]
     - ["Objects/Vehicles/Normal/Car_7_Truck/Car_7_Blue_Truck.png", 17, 40]
     - ["Objects/Nature/Green/Tree_3_Normal_Green.png", 3, 3]
-    - ["Objects/Nature/Green/Tree_3_Normal_Green.png", 45, 44]
-    - ["Objects/Nature/Green/Tree_5_Big_Green.png", 44, 3]
+    - ["Objects/Nature/Orange/Tree_3_Normal_Orange.png", 45, 44]
+    - ["Objects/Nature/Orange/Tree_5_Big_Orange.png", 44, 3]
     - ["Objects/Nature/Green/Tree_1_Spruce_Green.png", 3, 44]
+    - ["Objects/Nature/Red/Tree_1_Spruce_Red.png", 20, 12]
+    - ["Objects/Nature/Orange/Tree_10_Small-oak_Orange.png", 36, 40]
     - ["Objects/Street-Light_2_Up.png", 16, 5]
     - ["Objects/Street-Light_2_Up.png", 27, 27]
     - ["Objects/Street-Light_2_Up.png", 5, 38]
   scatter:
-    - {sprite: "Objects/Nature/Green/Tree_1_Spruce_Green.png", n: 12, on: GRASS}
-    - {sprite: "Objects/Nature/Green/Tree_10_Small-oak_Green.png", n: 10, on: GRASS}
+    - {sprite: "Objects/Nature/Orange/Tree_1_Spruce_Orange.png", n: 8, on: GRASS}
+    - {sprite: "Objects/Nature/Orange/Tree_10_Small-oak_Orange.png", n: 6, on: GRASS}
+    - {sprite: "Objects/Nature/Red/Tree_10_Small-oak_Red.png", n: 5, on: GRASS}
+    - {sprite: "Objects/Nature/Green/Tree_10_Small-oak_Green.png", n: 6, on: GRASS}
     - {sprite: "Objects/Nature/Green/Bush_2_Green.png", n: 24, on: GRASS}
     - {sprite: "Objects/Nature/Green/Grass_3_Green.png", n: 60, on: GRASS}
     - {sprite: "Objects/Nature/Flowers_Mashrooms_Other-nature-stuff/Flower_2_red.png", n: 20, on: GRASS}
@@ -89,6 +95,9 @@
   size: 48
   n_zombies: 18
   advance_at: 0.60
+  theme:
+    ground: "Bleak-Yellow"
+    wall_tint: [255, 233, 205]
   roads_x: [4, 43]
   roads_y: [12, 33]
   plazas: [[6, 14, 36, 18]]
@@ -131,6 +140,9 @@
   size: 48
   n_zombies: 22
   advance_at: 0.55
+  theme:
+    ground: "Dark-Green"
+    wall_tint: [203, 214, 255]
   roads_x: [24]
   roads_y: [30]
   plazas: [[4, 32, 40, 12]]
@@ -144,10 +156,11 @@
   survivor_spawns: [[20, 36], [21, 36], [22, 36], [20, 37], [21, 37], [22, 37], [20, 38], [23, 36], [21, 39], [23, 38]]
   zombie_spawns: [[2, 2], [45, 2], [2, 45], [45, 45], [2, 12], [45, 12], [14, 2], [34, 2], [4, 24], [42, 24], [2, 28], [45, 28], [24, 2], [36, 28]]
   props:
-    - ["Objects/Vehicles/Normal/Car_3_Van/Car_3_Blue_Van.png", 12, 34]
-    - ["Objects/Vehicles/Normal/Car_3_Van/Car_3_Light-Green_Van.png", 30, 35]
+    - ["Objects/Vehicles/Overgrown/Car_3_Overgrown_Van/Green/Car_3_Overgrown_Green_Blue_Van.png", 12, 34]
+    - ["Objects/Vehicles/Overgrown/Car_3_Overgrown_Van/Dark-Green/Car_3_Overgrown_Dark-Green_Light-Green_Van.png", 30, 35]
     - ["Objects/Vehicles/Normal/Car_8_Bus/Car_8_Yellow_Bus.png", 38, 38]
-    - ["Objects/Vehicles/Normal/Car_7_Truck/Car_7_Orange_Truck.png", 26, 40]
+    - ["Objects/Vehicles/Overgrown/Car_1_Overgrown/Green/Car_1_Overgrown_Green_Gray.png", 26, 40]
+    - ["Objects/Vehicles/Overgrown/Car_1_Overgrown/Dark-Green/Car_1_Overgrown_Dark-Green_Blue.png", 6, 38]
     - ["Objects/Traffic-cone.png", 10, 34]
     - ["Objects/Traffic-cone.png", 24, 34]
     - ["Objects/Traffic-cone.png", 36, 34]
@@ -158,14 +171,18 @@
   scatter:
     - {sprite: "Objects/Trash-bag_1.png", n: 8, on: ROAD}
     - {sprite: "Objects/Garbage-Bin_2.png", n: 6, on: ROAD}
-    - {sprite: "Objects/Nature/Green/Grass_2_Green.png", n: 40, on: GRASS}
-    - {sprite: "Objects/Nature/Green/Bush_2_Green.png", n: 16, on: GRASS}
+    - {sprite: "Objects/Nature/Dark-Green/Grass_2_Dark-Green.png", n: 45, on: GRASS}
+    - {sprite: "Objects/Nature/Dark-Green/Bush_2_Dark-Green.png", n: 18, on: GRASS}
+    - {sprite: "Objects/Nature/Dark-Green/Tree_1_Spruce_Dark-Green.png", n: 8, on: GRASS}
     - {sprite: "Objects/Nature/Flowers_Mashrooms_Other-nature-stuff/Flower_1_blue.png", n: 12, on: GRASS}
 
 - name: "Downtown Siege"
   size: 48
   n_zombies: 28
   advance_at: 0.50
+  theme:
+    ground: "Dark-Green"
+    wall_tint: [219, 188, 193]
   roads_x: [3, 22, 43]
   roads_y: [3, 22, 43]
   buildings:
@@ -186,15 +203,15 @@
   survivor_spawns: [[22, 22], [23, 22], [22, 23], [23, 23], [22, 20], [23, 20], [20, 22], [25, 23], [20, 23], [25, 22]]
   zombie_spawns: [[2, 2], [45, 2], [2, 45], [45, 45], [12, 12], [34, 12], [12, 30], [34, 30], [2, 12], [45, 12], [2, 30], [45, 30], [12, 2], [34, 2], [12, 45], [34, 45]]
   props:
-    - ["Objects/Vehicles/Normal/Car_1/Car_1_Blue.png", 12, 22]
-    - ["Objects/Vehicles/Normal/Car_1/Car_1_Gray.png", 34, 22]
-    - ["Objects/Vehicles/Normal/Car_7_Truck/Car_7_Gray_Truck.png", 22, 12]
+    - ["Objects/Vehicles/Rust/Car_1_Rust/Car_1_Rust_Blue.png", 12, 22]
+    - ["Objects/Vehicles/Rust/Car_6_Rust_Scrap/Car_6_Rust_Green_Scrap.png", 34, 22]
+    - ["Objects/Vehicles/Rust/Car_7_Rust_Truck/Car_7_Rust_Green_Truck_.png", 22, 12]
+    - ["Objects/Vehicles/Rust/Car_3_Rust_Van/Car_3_Rust_Blue_Van.png", 3, 17]
+    - ["Objects/Vehicles/Rust/Car_6_Rust_Scrap/Car_6_Rust_Dark-Blue_Scrap.png", 43, 26]
     - ["Objects/Vehicles/Normal/Car_8_Bus/Car_8_Red_Bus.png", 22, 34]
-    - ["Objects/Vehicles/Normal/Car_3_Van/Car_3_Blue_Van.png", 3, 17]
-    - ["Objects/Vehicles/Normal/Car_1/Car_1_Green.png", 43, 26]
-    - ["Objects/Barrel_red_1.png", 10, 30]
-    - ["Objects/Barrel_blue_1.png", 30, 10]
-    - ["Objects/Barrel_rust_red_1.png", 30, 40]
+    - ["Objects/Barrel_rust_red_1.png", 10, 30]
+    - ["Objects/Barrel_rust_blue_1.png", 30, 10]
+    - ["Objects/Barrel_rust_red_2.png", 30, 40]
     - ["Objects/Cardboard_1.png", 16, 24]
     - ["Objects/Pallet_1.png", 28, 28]
     - ["Objects/Trash-bag_1.png", 8, 16]
@@ -208,8 +225,9 @@
     - {sprite: "Objects/Trash-bag_1.png", n: 12, on: ROAD}
     - {sprite: "Objects/Trash-bag_2.png", n: 10, on: ROAD}
     - {sprite: "Objects/Cardboard_2.png", n: 8, on: ROAD}
-    - {sprite: "Objects/Barrel_red_1.png", n: 5, on: ROAD}
+    - {sprite: "Objects/Barrel_rust_blue_2.png", n: 5, on: ROAD}
     - {sprite: "Objects/Garbage-Bin_1.png", n: 6, on: ROAD}
-    - {sprite: "Objects/Nature/Green/Grass_1_Green.png", n: 50, on: GRASS}
-    - {sprite: "Objects/Nature/Green/Bush_1_Green.png", n: 16, on: GRASS}
-    - {sprite: "Objects/Nature/Flowers_Mashrooms_Other-nature-stuff/Flower_1_red.png", n: 10, on: GRASS}
+    - {sprite: "Objects/Nature/Bleak-Yellow/Tree_1_Spruce_Bleak-Yellow.png", n: 7, on: GRASS}
+    - {sprite: "Objects/Nature/Red/Tree_10_Small-oak_Red.png", n: 5, on: GRASS}
+    - {sprite: "Objects/Nature/Dark-Green/Bush_1_Dark-Green.png", n: 14, on: GRASS}
+    - {sprite: "Objects/Nature/Bleak-Yellow/Grass_2_Bleak-Yellow.png", n: 40, on: GRASS}

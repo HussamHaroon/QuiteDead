@@ -15,7 +15,7 @@ from .grid import GameMap, GRASS, ROAD, FLOOR, WALL, DOOR, WALKABLE
 
 class Level:
     def __init__(self, idx, name, game_map, supplies, survivor_spawns,
-                 zombie_spawns, props, n_zombies, advance_at):
+                 zombie_spawns, props, n_zombies, advance_at, theme=None):
         self.idx = idx
         self.name = name
         self.map = game_map
@@ -25,6 +25,7 @@ class Level:
         self.props = props                # [(sprite_relpath, x, y)]
         self.n_zombies = n_zombies
         self.advance_at = advance_at
+        self.theme = theme or {}
 
 
 def load_levels(path):
@@ -98,7 +99,8 @@ def _build(idx, d):
     return Level(idx, d.get("name", f"level_{idx}"), m, supplies,
                  [tuple(s) for s in d.get("survivor_spawns", [])],
                  [tuple(z) for z in d.get("zombie_spawns", [])],
-                 props, int(d.get("n_zombies", 8)), float(d.get("advance_at", 0.6)))
+                 props, int(d.get("n_zombies", 8)), float(d.get("advance_at", 0.6)),
+                 theme=d.get("theme", {}))
 
 
 def _scatter_props(idx, m, d, supplies, surv_spawns, zombie_spawns):

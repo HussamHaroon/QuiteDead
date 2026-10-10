@@ -38,8 +38,9 @@ def _frames_from_sheet(path):
 class TLSSprites:
     """TheLazyStone 4-direction animated sprites, drawn at native 16px scale."""
 
-    def __init__(self, base):
+    def __init__(self, base, theme=None):
         self.base = base
+        self.theme = theme or {}
         self.surv_sheets = {}   # (anim, dir) -> [frames]
         self.zomb_sheets = {}   # (kind, anim, dir) -> [frames]
         self.pickups = {}
@@ -62,13 +63,18 @@ class TLSSprites:
         self._load_map_tiles()
 
     def _load_map_tiles(self):
-        """Crop ground/wall tiles from the pack's tilesets, scaled 2x.
+        """Crop ground/wall tiles from the level's themed tilesets, scaled 2x.
 
         Each tile id maps to a list of variants; the viewer picks one
         deterministically per tile coordinate so the ground looks organic.
+        theme['ground'] selects the ground palette, theme['wall_tint'] tints
+        walls/floors for per-level atmosphere.
         """
-        ts_path = os.path.join(self.base, "Tiles", "Background_Green_TileSet.png")
+        ground = self.theme.get("ground", "Green")
+        ts_path = os.path.join(self.base, "Tiles", f"Background_{ground}_TileSet.png")
         wall_path = os.path.join(self.base, "Tiles", "Brick-Wall_TileSet.png")
+        if not os.path.exists(ts_path):
+            ts_path = os.path.join(self.base, "Tiles", "Background_Green_TileSet.png")
         if not (os.path.exists(ts_path) and os.path.exists(wall_path)):
             return
         ts = pygame.image.load(ts_path).convert_alpha()
@@ -76,6 +82,16 @@ class TLSSprites:
 
         def tile(img, tx, ty):
             return pygame.transform.scale_by(img.subsurface((tx * 16, ty * 16, 16, 16)), 2)
+
+        tint = self.theme.get("wall_tint")
+        if tint:
+            for group in (
+                [tile(brick, 0, 0), tile(brick, 4, 0), tile(brick, 5, 1)],
+                [tile(ts, 3, 11), tile(ts, 4, 11), tile(ts, 5, 11)],
+                [tile(ts, 4, 11)],
+            ):
+                for s in group:
+                    s.fill(tuple(tint), special_flags=pygame.BLEND_RGB_MULT)
 
         self.map_tiles = {
             0: [tile(ts, 0, 0), tile(ts, 0, 0), tile(ts, 0, 0), tile(ts, 3, 1)],   # grass + flower decor
@@ -181,10 +197,11 @@ class KenneySprites:
         return None
 
 
-def load_bank():
+def load_bank(theme=None):
+    """Build a sprite bank; theme = {'ground': palette name, 'wall_tint': [r,g,b]}."""
     if os.path.isdir(_TLS_DIR):
         try:
-            return TLSSprites(_TLS_DIR)
+            return TLSSprites(_TLS_DIR, theme or {})
         except Exception:
             pass
     return KenneySprites(_KENNEY_DIR)

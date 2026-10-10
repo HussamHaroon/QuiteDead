@@ -31,6 +31,11 @@ except ImportError:  # run as a plain script
     from sprites import load_bank
 
 
+def _is_night(t):
+    phase = (math.sin(2 * math.pi * t / 2400.0 - math.pi / 2) + 1) / 2
+    return phase > 0.6
+
+
 def _make_world(cfg, level=None):
     from zombie_sim.core.sim import World
     return World(cfg, level=level)
@@ -115,7 +120,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
     font = pygame.font.SysFont("consolas", 15)
 
     world = _make_world(cfg, level=level)
-    bank = load_bank()
+    bank = load_bank(level.theme if level is not None else None)
     background = _prerender_map(world, getattr(bank, "map_tiles", None))
     rot_cache = {}
     selected = next((s for s in world.survivors if s.alive), None)
@@ -123,6 +128,8 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
     paused = False
     show_cone = True
     show_noise = False
+    show_daynight = True
+    night_overlay = pygame.Surface((m_px, m_px), pygame.SRCALPHA)
 
     overlay = pygame.Surface((m_px, m_px), pygame.SRCALPHA)
     done = False
@@ -142,6 +149,8 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                     show_cone = not show_cone
                 elif ev.key == pygame.K_n:
                     show_noise = not show_noise
+                elif ev.key == pygame.K_t:
+                    show_daynight = not show_daynight
                 elif ev.key == pygame.K_TAB:
                     alive = [s for s in world.survivors if s.alive]
                     if alive:
@@ -155,6 +164,14 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
 
         screen.fill((16, 16, 20))
         screen.blit(background, (0, 0))
+
+        # cosmetic day/night cycle (viewer-only; does not affect simulation)
+        if show_daynight:
+            phase = (math.sin(2 * math.pi * world.t / 2400.0 - math.pi / 2) + 1) / 2  # 0 day .. 1 night
+            a = int(phase * 120)
+            if a > 4:
+                night_overlay.fill((10, 14, 40, a))
+                screen.blit(night_overlay, (0, 0))
 
         if level is not None:
             for relpath, px, py in level.props:
@@ -203,7 +220,8 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
         loot = world.log.count("loot")
         line1 = (f"SURV {surv:>3}   INFECTED {inf:>2}   ZOMBIES {zomb:>3}   "
                  f"LOOT {loot:>3}   tick {world.t:>5}   x{ticks_per_frame if not paused else 0}"
-                 + (f"   [{level.name}]" if level is not None else ""))
+                 + (f"   [{level.name}]" if level is not None else "")
+                 + ("   NIGHT" if show_daynight and _is_night(world.t) else ""))
         sel = ""
         if selected is not None:
             sel = (f"[{selected.id}] hp {selected.hp:.0f} hunger {selected.hunger:.0f} "
