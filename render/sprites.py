@@ -19,6 +19,8 @@ PICKUP_SPRITES = {
     "food": "Canned-food",
     "water": "Canned-soup",
     "meds": "Bandage",
+    "gun": "Pistol",
+    "ammo": "Ammo-crate_Red",
 }
 
 # zombie id -> visual type (walker / axe brute / big tank)

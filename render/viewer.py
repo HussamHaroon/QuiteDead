@@ -1,7 +1,7 @@
 """Pygame observer view: god-mode map, sprites, vision cone, noise overlay, HUD.
 
 Controls: SPACE pause | 1-4 speed | TAB next survivor | V vision cone |
-N noise heatmap | ESC quit.
+N noise heatmap | T day/night | R restart (after win/loss) | ESC quit.
 """
 import math
 import os
@@ -19,11 +19,13 @@ COLORS = {
     3: (112, 112, 124), # wall
     4: (146, 108, 56),  # door
 }
-SUPPLY_COLORS = {"food": (232, 146, 58), "water": (86, 156, 232), "meds": (226, 88, 96)}
+SUPPLY_COLORS = {
+    "food": (232, 146, 58), "water": (86, 156, 232), "meds": (226, 88, 96),
+    "gun": (210, 210, 225), "ammo": (225, 95, 75),
+}
 
 ASSET_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                          "assets", "sprites", "top-down-shooter", "PNG")
-SUPPLY_COLORS = {"food": (232, 146, 58), "water": (86, 156, 232), "meds": (226, 88, 96)}
 
 try:
     from .sprites import load_bank
@@ -117,7 +119,8 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
     screen = pygame.display.set_mode((m_px, m_px + HUD_H))
     pygame.display.set_caption("QuiteDead")
     clock = pygame.time.Clock()
-    font = pygame.font.SysFont("consolas", 15)
+    font = pygame.font.SysFont("consolas", 14)
+    small_font = pygame.font.SysFont("consolas", 11, bold=True)
 
     world = _make_world(cfg, level=level)
     bank = load_bank(level.theme if level is not None else None)
@@ -133,14 +136,16 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
     extinct = False
     extinct_at = 0
     won = False
+    win_reason = None  # "stock" (stockpile filled) or "survive" (win_ticks held)
 
     def _new_outbreak():
-        nonlocal world, background, selected, extinct, won
+        nonlocal world, background, selected, extinct, won, win_reason
         world = _make_world(cfg, level=level)
         background = _prerender_map(world, getattr(bank, "map_tiles", None))
         selected = next((s for s in world.survivors if s.alive), None)
         extinct = False
         won = False
+        win_reason = None
 
     overlay = pygame.Surface((m_px, m_px), pygame.SRCALPHA)
     done = False
@@ -174,11 +179,17 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
             for _ in range(ticks_per_frame):
                 world.step()
             frame += ticks_per_frame
+            win_stock = level.win_stock if level is not None else None
             if world.counts()[0] == 0:
                 extinct = True
                 extinct_at = pygame.time.get_ticks()
+            elif win_stock and world.stockpile >= win_stock:
+                won = True
+                win_reason = "stock"
+                extinct_at = pygame.time.get_ticks()
             elif world.t >= cfg.win_ticks:
                 won = True
+                win_reason = "survive"
                 extinct_at = pygame.time.get_ticks()
 
         screen.fill((16, 16, 20))
@@ -191,6 +202,19 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
             if a > 4:
                 night_overlay.fill((10, 14, 40, a))
                 screen.blit(night_overlay, (0, 0))
+
+        # safe house: translucent gold tint over its tiles + micro-label above
+        if world.safehouse is not None:
+            sx, sy, sw, sh = world.safehouse
+            rect = pygame.Rect(sx * TILE, sy * TILE, sw * TILE, sh * TILE)
+            gold = pygame.Surface(rect.size, pygame.SRCALPHA)
+            gold.fill((255, 205, 40, 55))
+            screen.blit(gold, rect.topleft)
+            pygame.draw.rect(screen, (255, 210, 70), rect, 1)
+            label = small_font.render("SAFE HOUSE", True, (255, 225, 70))
+            screen.blit(label, label.get_rect(
+                centerx=rect.centerx,
+                bottom=max(label.get_height() + 2, rect.top - 2)))
 
         if level is not None:
             for relpath, px, py in level.props:
@@ -239,9 +263,16 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
             box.fill((10, 10, 14, 215))
             screen.blit(box, (0, m_px // 2 - 45))
             big = pygame.font.SysFont("consolas", 26, bold=True)
-            if won:
+            if won and win_reason == "stock":
+                head = pygame.font.SysFont("consolas", 22, bold=True)
+                t1 = head.render("SUPPLIES SECURED — the camp eats another week",
+                                 True, (120, 235, 120))
                 alive = world.counts()[0]
-                t1 = big.render(f"OUTBREAK SURVIVED  -  {alive}/{cfg.n_survivors} ALIVE",
+                t2 = font.render(f"stockpile {world.stockpile}/{level.win_stock}  -  "
+                                 f"{alive}/{cfg.n_survivors} alive  -  R = new outbreak, ESC = quit",
+                                 True, (220, 220, 220))
+            elif won:
+                t1 = big.render(f"OUTBREAK SURVIVED  -  {world.counts()[0]}/{cfg.n_survivors} ALIVE",
                                 True, (120, 235, 120))
                 t2 = font.render(f"they held out for {cfg.win_ticks} ticks  -  R = new outbreak, ESC = quit",
                                  True, (220, 220, 220))
@@ -255,10 +286,12 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
         pygame.draw.rect(screen, (24, 24, 30), (0, m_px, m_px, HUD_H))
         surv, inf, zomb = world.counts()
         loot = world.log.count("loot")
-        line1 = (f"SURV {surv:>3}   INFECTED {inf:>2}   ZOMBIES {zomb:>3}   "
-                 f"LOOT {loot:>3}   tick {world.t:>5}   x{ticks_per_frame if not paused else 0}"
-                 + (f"   [{level.name}]" if level is not None else "")
-                 + ("   NIGHT" if show_daynight and _is_night(world.t) else ""))
+        win_stock = level.win_stock if level is not None else None
+        line1 = (f"SURV {surv} INFECTED {inf} ZOMBIES {zomb} LOOT {loot} "
+                 f"STOCK {world.stockpile}/{win_stock if win_stock is not None else '?'} "
+                 f"tick {world.t} x{ticks_per_frame if not paused else 0}"
+                 + (f" [{level.name}]" if level is not None else "")
+                 + (" NIGHT" if show_daynight and _is_night(world.t) else ""))
         sel = ""
         if selected is not None:
             sel = (f"[{selected.id}] hp {selected.hp:.0f} hunger {selected.hunger:.0f} "
@@ -267,9 +300,16 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                    f"meds {selected.inventory['meds']}"
                    + ("  INFECTED" if selected.infected else ""))
         screen.blit(font.render(line1, True, (225, 225, 225)), (10, m_px + 4))
-        screen.blit(font.render(sel, True, (150, 220, 150)), (10, m_px + 24))
-        screen.blit(font.render("SPACE pause | 1-4 speed | TAB agent | V cone | N noise | ESC quit",
-                                True, (120, 120, 130)), (m_px - 430, m_px + 24))
+        hint = font.render("SPACE pause | 1-4 speed | TAB agent | V cone | N noise | R restart | ESC quit",
+                           True, (120, 120, 130))
+        screen.blit(hint, hint.get_rect(topright=(m_px - 8, m_px + 24)))
+        sel_surf = font.render(sel, True, (150, 220, 150))
+        avail = m_px - 8 - hint.get_width() - 10 - 10  # stop before the hint
+        if avail > 0:
+            screen.blit(sel_surf, (10, m_px + 24),
+                        area=pygame.Rect(0, 0, min(sel_surf.get_width(), avail), sel_surf.get_height()))
+        else:
+            screen.blit(sel_surf, (10, m_px + 24))
         pygame.display.flip()
 
         if screenshot and (frame >= frames or extinct or won):
