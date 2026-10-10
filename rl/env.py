@@ -224,6 +224,8 @@ class SurvivorEnv:
             overrides.update({"n_zombies": lvl.n_zombies,
                               "n_supply_outdoor": 0, "supply_per_building": 0.0,
                               "width": lvl.map.w, "height": lvl.map.h})
+            if lvl.reanimation_enabled is not None:
+                overrides["reanimation_enabled"] = lvl.reanimation_enabled
         cfg = Config(**{**self.base_cfg.to_dict(), **overrides})
         self.world = World(cfg, level=lvl)
         for s in self.world.survivors:

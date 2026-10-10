@@ -5,6 +5,7 @@
   n_zombies: 1
   advance_at: 0.80
   win_stock: 8
+  reanimation_enabled: false
   roads_x: [8, 24]
   roads_y: [16]
   buildings:
