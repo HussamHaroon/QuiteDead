@@ -1,6 +1,6 @@
 # QuiteDead default scenario — literature-anchored defaults, sweep-friendly
 seed: 42
-reinforce_every_ticks: 900
+reinforce_every_ticks: 0
 reinforce_count: 2
 width: 64
 height: 64

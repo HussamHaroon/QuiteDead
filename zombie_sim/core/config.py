@@ -10,9 +10,9 @@ class Config:
     width: int = 64
     height: int = 64
     seed: int = 42
-    # zombie reinforcement trickle: the horde grows over time, so speed matters
-    # even without any artificial deadline
-    reinforce_every_ticks: int = 900
+    # zombie reinforcement trickle: OFF by default — the existing horde plus
+    # reanimation is the pressure. Turn on per-experiment if wanted.
+    reinforce_every_ticks: int = 0
     reinforce_count: int = 2
     # population
     n_survivors: int = 60
