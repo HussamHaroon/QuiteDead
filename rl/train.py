@@ -148,6 +148,7 @@ def main():
     levels = None
     cur_level = 0
     recent_surv = deque(maxlen=6)   # sliding window: recent performance, not lifetime
+    recent_prog = deque(maxlen=6)   # stockpile fraction at episode end
     episode_count = 0
     if args.levels:
         from zombie_sim.core.levels import load_levels
@@ -217,12 +218,15 @@ def main():
                 episode_count += 1
                 if env.current_level is not None and env.current_level.idx == cur_level:
                     recent_surv.append(st["survivors"] / args.survivors)
+                    lvl_obj = env.current_level
+                    recent_prog.append(st.get("stockpile", 0) / max(1, lvl_obj.win_stock))
                 # occasional replay of earlier levels so nothing is forgotten
                 if episode_count % 7 == 0 and cur_level > 0:
                     env.next_level = levels[int(torch.randint(0, cur_level + 1, (1,)).item())]
-            if len(recent_surv) >= 4 and cur_level < len(levels) - 1:
-                mean_surv = sum(recent_surv) / len(recent_surv)
-                if mean_surv >= levels[cur_level].advance_at:
+            if len(recent_prog) >= 4 and cur_level < len(levels) - 1:
+                mean_prog = sum(recent_prog) / len(recent_prog)
+                mean_surv = sum(recent_surv) / max(1, len(recent_surv))
+                if mean_prog >= 0.6 or mean_surv >= levels[cur_level].advance_at:
                     cur_level += 1
                     recent_surv.clear()   # keep the deque (a plain-list rebind
                                           # would silently unbound the window)

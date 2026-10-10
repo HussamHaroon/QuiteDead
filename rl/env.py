@@ -36,11 +36,11 @@ R_SURVIVE = 4.0
 R_DEPOSIT = 3.0   # per item deposited in the safe house ("deposit" event, n items)
 R_GUN = 1.0       # bonus for picking up a gun (loot event with kind == "gun")
 R_QUOTA = 6.0     # per living survivor when the level's stockpile quota is met
-R_SHAPE = 0.1     # potential-based shaping coefficient (Ng et al. 1999: F = g*phi' - phi
+R_SHAPE = 0.02    # potential-based shaping coefficient (Ng et al. 1999: F = g*phi' - phi
                   # preserves the optimal policy while giving a dense gradient)
-R_AVOID = 0.10    # threat-avoidance shaping: equal weight to objective pull, so
+R_AVOID = 0.02    # threat-avoidance shaping: equal weight to objective pull, so
                   # "walk through the zombie to the supply" is never net-positive
-PBRS_GAMMA = 0.995  # must match the PPO discount
+PBRS_GAMMA = 0.999  # must match the PPO discount
 
 
 def _threat_potential(world, s):
@@ -60,7 +60,7 @@ def _potential(world, s):
     """Negative distance to the current objective: the safe house when carrying
     supplies, else the nearest KNOWN supply (agent-private memory only)."""
     carried = sum(s.inventory[k] for k in ("food", "water", "meds"))
-    if carried >= 3 or (carried > 0 and not s.memory_sup):
+    if carried >= 1:
         if world.safehouse is not None:
             x0, y0, sw, sh = world.safehouse
             tx, ty = x0 + sw / 2.0, y0 + sh / 2.0
@@ -227,6 +227,7 @@ class SurvivorEnv:
         self.episode = 0
         self.last_stats = None
         self.pending_reset = False
+        self._ep_reward = 0.0
 
     def reset(self):
         # priority: controller override > stay on current level > static level
@@ -236,6 +237,7 @@ class SurvivorEnv:
         self.next_level = None
         self.current_level = lvl
         self.pending_reset = False
+        self._ep_reward = 0.0
         seed = self.base_seed * 100000 + self.env_index * 4099 + self.episode * 7919
         overrides = {"seed": seed}
         if lvl is not None:
@@ -245,6 +247,10 @@ class SurvivorEnv:
             if lvl.reanimation_enabled is not None:
                 overrides["reanimation_enabled"] = lvl.reanimation_enabled
         cfg = Config(**{**self.base_cfg.to_dict(), **overrides})
+        if lvl is None or True:
+            jitter = 0.9 + 0.2 * ((seed * 2654435761) % 1000 / 1000.0)
+            cfg.thirst_rate = round(cfg.thirst_rate * jitter, 5)
+            cfg.hunger_rate = round(cfg.hunger_rate * jitter, 5)
         self.world = World(cfg, level=lvl)
         for s in self.world.survivors:
             s.rl = True
@@ -295,6 +301,11 @@ class SurvivorEnv:
 
         survivors_alive, _, _ = w.counts()
 
+        # episode reward accumulator (metrics previously summed the final
+        # tick only — last_stats["reward"] was meaningless)
+        self._ep_reward += sum(v for v in
+                               (rew.get(s.id, 0.0) for s in w.survivors if s.alive))
+
         # dense shaping: reward every tick that closes in on the objective AND
         # every tick that keeps distance from visible threats
         for s in w.survivors:
@@ -311,6 +322,9 @@ class SurvivorEnv:
         done = survivors_alive == 0 or won or w.t >= self.horizon
         if done:
             self.pending_reset = True
+            for s in w.survivors:
+                if s.alive:
+                    rew[s.id] = rew.get(s.id, 0.0) - R_SHAPE * _potential(w, s)                         - R_AVOID * _threat_potential(w, s)
             quota_met = 1 if won else 0
             for s in w.survivors:
                 if s.alive:

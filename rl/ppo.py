@@ -55,7 +55,7 @@ def gae_per_trajectory(rewards, values, dones, last_value, gamma, lam):
 class PPO:
     def __init__(self, obs_dim, act_dim, lr=3e-4, clip=0.2, epochs=4,
                  minibatch=1024, ent_coef=0.01, vf_coef=0.5, max_grad_norm=0.5,
-                 gamma=0.995, lam=0.95, device="cpu", seed=0):
+                 gamma=0.999, lam=0.95, device="cpu", seed=0):
         torch.manual_seed(seed)
         self.rng = np.random.default_rng(seed)
         self.net = ActorCritic(obs_dim, act_dim).to(device)
