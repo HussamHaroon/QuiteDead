@@ -300,7 +300,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
             pulse = 5 + int(2.5 * math.sin(pygame.time.get_ticks() * 0.006))
             ring_colors = {"food": (232, 146, 58), "water": (86, 156, 232),
                            "meds": (226, 88, 96), "gun": (80, 230, 255),
-                           "ammo": (255, 220, 80)}
+                           "ammo": (255, 220, 80), "bat": (205, 160, 90)}
             for sup in world.supplies.values():
                 if not sup.taken:
                     c = ring_colors.get(sup.kind, (255, 255, 255))

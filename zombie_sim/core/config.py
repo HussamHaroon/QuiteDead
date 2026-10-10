@@ -29,13 +29,18 @@ class Config:
     hunger_rate: float = 0.060            # per tick — needs must shape mid-game routes
     thirst_rate: float = 0.080
     hunger_damage: float = 0.06           # hp lost per tick at max hunger/thirst
-    # survivor combat
-    melee_damage: float = 34.0
-    melee_chance: float = 0.55
-    melee_cooldown: int = 18
+    # threat response
     fight_hp_threshold: float = 60.0      # only stand and fight above this hp
     danger_radius: float = 5.0            # flee when a zombie is closer than this
-    # guns (looted, not spawned-with)
+    # weapons: unarmed survivors CANNOT kill — shove only. Bat = quiet melee
+    # weapon (looted). Pistol = ranged, loud, ammo-limited (looted).
+    bat_damage: float = 50.0
+    bat_chance: float = 0.70
+    bat_cooldown: int = 12
+    bat_noise: float = 15.0
+    shove_cooldown: int = 12
+    shove_push: float = 0.6
+    shove_noise: float = 5.0
     gun_range: float = 6.0
     gun_damage: float = 60.0
     gun_chance: float = 0.75
@@ -44,6 +49,7 @@ class Config:
     ammo_per_crate: int = 8
     n_guns_spawn: int = 4                 # guns placed on procedural maps (rare)
     n_ammo_spawn: int = 8                 # ammo crates placed on procedural maps
+    n_bats_spawn: int = 4                 # bats placed on procedural maps
     # zombie body
     zombie_walk: float = 0.055
     zombie_chase_speed: float = 0.115

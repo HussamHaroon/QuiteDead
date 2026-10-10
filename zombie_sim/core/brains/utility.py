@@ -33,19 +33,21 @@ def _useful(kind, s):
     """Would picking this supply kind up be worth the trip for survivor s?"""
     if kind == "gun":
         return not s.gun
+    if kind == "bat":
+        return not s.has_bat
     if kind == "ammo":
         return s.gun and s.ammo < AMMO_LOW
     return s.inventory[kind] < CAP[kind]
 
 
 def _pick_target(world, s):
-    """Nearest useful remembered supply; gun > ammo > consumables, then distance."""
+    """Nearest useful remembered supply; gun > bat > ammo > consumables, then distance."""
     best_sid, best_key = None, None
     for sid, (sx, sy) in s.memory_sup.items():
         kind = world.supplies[sid].kind
         if not _useful(kind, s):
             continue
-        tier = 0 if kind == "gun" else (1 if kind == "ammo" else 2)
+        tier = 0 if kind == "gun" else (1 if kind == "bat" else (2 if kind == "ammo" else 3))
         key = (tier, (sx - s.x) ** 2 + (sy - s.y) ** 2)
         if best_key is None or key < best_key:
             best_sid, best_key = sid, key
@@ -81,8 +83,9 @@ def think(world, s):
     s.fear = max(0.0, s.fear - 0.004)
     s.fleeing = False
 
-    # 1. THREAT: stand and shoot > flee > melee (cornered fights are resolved
-    #    in move_agents when fleeing into a wall leaves no room to run)
+    # 1. THREAT: shoot (armed) > flee > bat-fight (armed with bat, healthy,
+    #    point-blank) — bare hands NEVER stand and fight; the cornered shove
+    #    escape is resolved in move_agents
     if threats:
         nearest = min(threats, key=lambda z: (z.x - s.x) ** 2 + (z.y - s.y) ** 2)
         d = math.hypot(nearest.x - s.x, nearest.y - s.y)
@@ -96,15 +99,15 @@ def think(world, s):
             s.heading = math.atan2(nearest.y - s.y, nearest.x - s.x)
             return
         if d < cfg.danger_radius:
+            if s.has_bat and d <= 1.15 and s.hp > cfg.fight_hp_threshold:
+                s.state_label = "FIGHTING"
+                s.action = ("attack", nearest.id)
+                s.path = None
+                s.vel = (0.0, 0.0)
+                s.heading = math.atan2(nearest.y - s.y, nearest.x - s.x)
+                return
             s.state_label = "FLEEING"
             _flee(s, threats, cfg)
-            return
-        if d < 1.15 and s.hp > cfg.fight_hp_threshold and s.cooldown <= 0:
-            s.state_label = "FIGHTING"
-            s.action = ("attack", nearest.id)
-            s.path = None
-            s.vel = (0.0, 0.0)
-            s.heading = math.atan2(nearest.y - s.y, nearest.x - s.x)
             return
 
     # 2. NEEDS

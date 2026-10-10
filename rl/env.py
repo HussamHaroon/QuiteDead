@@ -13,12 +13,13 @@ from zombie_sim.core.perception import can_see
 from zombie_sim.core.sim import World
 
 PATCH = 9                       # local wall patch (PATCH x PATCH)
-SELF_DIM = 7
+SELF_DIM = 10                   # hp, hunger, thirst, fear, infected, infection, cooldown,
+                                # gun, ammo, bat
 Z_VIS_DIM = 4                   # exists, dist, sin, cos
 Z_MEM_DIM = 5                   # exists, dist, sin, cos, staleness
 SUP_DIM = 4
 PEER_DIM = 3
-OBS_DIM = SELF_DIM + Z_VIS_DIM + Z_MEM_DIM + SUP_DIM + PEER_DIM + PATCH * PATCH  # 104
+OBS_DIM = SELF_DIM + Z_VIS_DIM + Z_MEM_DIM + SUP_DIM + PEER_DIM + PATCH * PATCH  # 107
 ACT_DIM = 10                    # 0 stay, 1-8 move dirs, 9 attack
 # screen-consistent move directions (N, NE, E, SE, S, SW, W, NW) in tile coords
 DIRS = [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1)]
@@ -121,7 +122,8 @@ def obs_for(world, s):
     cfg, m = world.cfg, world.game_map
     vr = cfg.vision_range
     f = [s.hp / 100.0, s.hunger / 100.0, s.thirst / 100.0, s.fear,
-         1.0 if s.infected else 0.0, s.infection / 100.0, s.cooldown / 30.0]
+         1.0 if s.infected else 0.0, s.infection / 100.0, s.cooldown / 30.0,
+         1.0 if s.gun else 0.0, s.ammo / 8.0, 1.0 if s.has_bat else 0.0]
 
     def rel(dx, dy):
         d = math.hypot(dx, dy)
@@ -275,7 +277,7 @@ class SurvivorEnv:
         for e in w.log.events[log_i0:]:
             if e["type"] == "loot":
                 rew[e["who"]] = rew.get(e["who"], 0.0) + R_LOOT
-                if e.get("kind") == "gun":
+                if e.get("kind") in ("gun", "bat"):
                     rew[e["who"]] = rew.get(e["who"], 0.0) + R_GUN
             elif e["type"] == "deposit":
                 # safe-house deposit: ("deposit", who, n) — n items added to stockpile

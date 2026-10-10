@@ -79,6 +79,8 @@ def loot_tick(world):
                     s.gun = True
                 elif sup.kind == "ammo":
                     s.ammo += int(world.cfg.ammo_per_crate)
+                elif sup.kind == "bat":
+                    s.has_bat = True
                 else:
                     s.inventory[sup.kind] += 1
                 sup.taken = True
@@ -140,6 +142,8 @@ MELEE_REACH = 1.45  # cornered-fight orders come from a 1.4-radius query
 
 
 def survivor_attacks(world):
+    """Weapon ladder: pistol (ranged, loud) > bat (quiet melee) > shove
+    (unarmed escape tool — pushes the zombie back, cannot kill)."""
     cfg = world.cfg
     m = world.game_map
     for s in world.survivors:
@@ -152,15 +156,17 @@ def survivor_attacks(world):
         z = world.agents_by_id.get(zid)
         s.action = None
         if z is None or not z.alive:
-            s.cooldown = cfg.melee_cooldown
+            s.cooldown = cfg.shove_cooldown
             continue
         d = math.hypot(z.x - s.x, z.y - s.y)
+
         if s.gun and s.ammo > 0 and d <= cfg.gun_range \
                 and line_of_sight(m, s.x, s.y, z.x, z.y):
-            # gunshot: loud, single round, probabilistic hit
+            # pistol shot: loud, single round, probabilistic hit
             s.ammo -= 1
             s.cooldown = cfg.gun_cooldown
             world.noise.emit(s.x, s.y, cfg.gun_noise)
+            s.state_label = "SHOOTING"
             hit = world.rng.random() < cfg.gun_chance
             world.log.add(world.t, "shot", who=s.id, target=z.id, hit=bool(hit),
                           x=round(s.x, 1), y=round(s.y, 1))
@@ -169,17 +175,29 @@ def survivor_attacks(world):
                 if z.hp <= 0:
                     die(world, z, "killed_by_survivor")
                     world.log.add(world.t, "kill", killer=s.id, who=z.id)
-        elif d <= MELEE_REACH:
-            # melee, exactly as before
-            s.cooldown = cfg.melee_cooldown
-            world.noise.emit(s.x, s.y, cfg.noise_combat)
-            if world.rng.random() < cfg.melee_chance:
-                z.hp -= cfg.melee_damage
+        elif s.has_bat and d <= MELEE_REACH:
+            # bat: quiet melee weapon — the only unarmed-adjacent way to kill
+            s.cooldown = cfg.bat_cooldown
+            world.noise.emit(s.x, s.y, cfg.bat_noise)
+            s.state_label = "FIGHTING"
+            if world.rng.random() < cfg.bat_chance:
+                z.hp -= cfg.bat_damage
                 if z.hp <= 0:
                     die(world, z, "killed_by_survivor")
                     world.log.add(world.t, "kill", killer=s.id, who=z.id)
+        elif d <= MELEE_REACH:
+            # shove: bare hands cannot kill — knock the zombie back to buy
+            # escape room instead
+            s.cooldown = cfg.shove_cooldown
+            world.noise.emit(s.x, s.y, cfg.shove_noise)
+            s.state_label = "SHOVING"
+            dx, dy = z.x - s.x, z.y - s.y
+            dist = max(0.3, math.hypot(dx, dy))
+            nx, ny = z.x + dx / dist * cfg.shove_push, z.y + dy / dist * cfg.shove_push
+            if m.walkable(nx, ny):
+                z.x, z.y = nx, ny
         else:
-            s.cooldown = cfg.melee_cooldown
+            s.cooldown = cfg.shove_cooldown
 
 
 def infection_tick(world):
