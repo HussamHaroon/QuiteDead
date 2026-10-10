@@ -1,8 +1,11 @@
-"""Per-tick systems: movement, looting, combat, infection, needs, reanimation."""
+"""Per-tick systems: movement, looting, deposits, combat, infection, needs, reanimation."""
 import itertools
 import math
 
 from .agents import Zombie
+from .perception import line_of_sight
+
+DEPOSIT_KINDS = ("food", "water", "meds")
 
 
 def move_agents(world):
@@ -53,12 +56,15 @@ def move_agents(world):
                 d = (z.x - a.x) ** 2 + (z.y - a.y) ** 2
                 if d < best:
                     best, near = d, z
-            if near is not None and a.cooldown <= 0:
+            if near is not None and best <= 1.4 ** 2 and a.cooldown <= 0:
                 a.action = ("attack", near.id)
 
 
 def _is_running(a):
-    return getattr(a, "fleeing", False) or getattr(a, "fear", 0.0) > 0.55
+    if getattr(a, "fleeing", False) or getattr(a, "fear", 0.0) > 0.55:
+        return True
+    # RL movers set velocities directly; they travel at run speed
+    return a.kind == "survivor" and getattr(a, "rl", False) and a.vel != (0.0, 0.0)
 
 
 def loot_tick(world):
@@ -68,11 +74,34 @@ def loot_tick(world):
         for s in world.spatial_s.query(sup.x, sup.y, 0.7):
             if s.alive and s.kind == "survivor" \
                     and (s.x - sup.x) ** 2 + (s.y - sup.y) ** 2 < 0.55:
-                s.inventory[sup.kind] += 1
+                if sup.kind == "gun":
+                    s.gun = True
+                elif sup.kind == "ammo":
+                    s.ammo += int(world.cfg.ammo_per_crate)
+                else:
+                    s.inventory[sup.kind] += 1
                 sup.taken = True
                 world.log.add(world.t, "loot", who=s.id, kind=sup.kind,
                               x=round(sup.x, 1), y=round(sup.y, 1))
                 break
+
+
+def deposit_tick(world):
+    """Standing in the safe house drops all carried food/water/meds into the
+    stockpile — the payoff of the leave / loot / return mission loop."""
+    if world.safehouse is None:
+        return
+    for s in world.survivors:
+        if not s.alive or not world.in_safehouse(s):
+            continue
+        n = sum(s.inventory[k] for k in DEPOSIT_KINDS)
+        if n <= 0:
+            continue
+        for k in DEPOSIT_KINDS:
+            s.inventory[k] = 0
+        world.stockpile += n
+        world.log.add(world.t, "deposit", who=s.id, n=n,
+                      x=round(s.x, 1), y=round(s.y, 1))
 
 
 def combat_tick(world):
@@ -90,8 +119,8 @@ def combat_tick(world):
                 d = (s.x - z.x) ** 2 + (s.y - z.y) ** 2
                 if d < best:
                     best, target = d, s
-        if target is None:
-            continue
+        if target is None or best > 0.8 ** 2:
+            continue  # spatial query over-approximates cell overlap — enforce true reach
         z.attack_cd = cfg.zombie_attack_cooldown
         world.noise.emit(z.x, z.y, 5.0)
         if world.rng.random() < cfg.zombie_attack_chance:
@@ -106,8 +135,12 @@ def combat_tick(world):
                     die(world, target, "zombie")
 
 
+MELEE_REACH = 1.45  # cornered-fight orders come from a 1.4-radius query
+
+
 def survivor_attacks(world):
     cfg = world.cfg
+    m = world.game_map
     for s in world.survivors:
         if not s.alive or s.cooldown > 0:
             s.cooldown = max(0, s.cooldown - 1)
@@ -116,16 +149,36 @@ def survivor_attacks(world):
             continue
         zid = s.action[1]
         z = world.agents_by_id.get(zid)
-        s.cooldown = cfg.melee_cooldown
         s.action = None
         if z is None or not z.alive:
+            s.cooldown = cfg.melee_cooldown
             continue
-        world.noise.emit(s.x, s.y, cfg.noise_combat)
-        if world.rng.random() < cfg.melee_chance:
-            z.hp -= cfg.melee_damage
-            if z.hp <= 0:
-                die(world, z, "killed_by_survivor")
-                world.log.add(world.t, "kill", killer=s.id, who=z.id)
+        d = math.hypot(z.x - s.x, z.y - s.y)
+        if s.gun and s.ammo > 0 and d <= cfg.gun_range \
+                and line_of_sight(m, s.x, s.y, z.x, z.y):
+            # gunshot: loud, single round, probabilistic hit
+            s.ammo -= 1
+            s.cooldown = cfg.gun_cooldown
+            world.noise.emit(s.x, s.y, cfg.gun_noise)
+            hit = world.rng.random() < cfg.gun_chance
+            world.log.add(world.t, "shot", who=s.id, target=z.id, hit=bool(hit),
+                          x=round(s.x, 1), y=round(s.y, 1))
+            if hit:
+                z.hp -= cfg.gun_damage
+                if z.hp <= 0:
+                    die(world, z, "killed_by_survivor")
+                    world.log.add(world.t, "kill", killer=s.id, who=z.id)
+        elif d <= MELEE_REACH:
+            # melee, exactly as before
+            s.cooldown = cfg.melee_cooldown
+            world.noise.emit(s.x, s.y, cfg.noise_combat)
+            if world.rng.random() < cfg.melee_chance:
+                z.hp -= cfg.melee_damage
+                if z.hp <= 0:
+                    die(world, z, "killed_by_survivor")
+                    world.log.add(world.t, "kill", killer=s.id, who=z.id)
+        else:
+            s.cooldown = cfg.melee_cooldown
 
 
 def infection_tick(world):

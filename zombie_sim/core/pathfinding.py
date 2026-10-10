@@ -4,8 +4,10 @@ import heapq
 _DIAG = 2 ** 0.5
 
 
-def astar(game_map, start, goal, max_expand=4000):
+def astar(game_map, start, goal, max_expand=None):
     """Returns a list of float waypoints (tile centers) from start to goal, or None."""
+    if max_expand is None:
+        max_expand = game_map.w * game_map.h * 2
     sx, sy = int(start[0]), int(start[1])
     gx, gy = int(goal[0]), int(goal[1])
     if game_map.blocked(gx, gy):

@@ -15,12 +15,14 @@ def think(world, z):
 
     visible = None
     best_d = 1e18
-    for s in world.spatial_s.query(z.x, z.y, cfg.zombie_vision_range):
+    for s in world.spatial_z.query(z.x, z.y, cfg.zombie_vision_range):
         if s.alive and can_see(m, z, s.x, s.y, cfg.zombie_vision_range, cfg.zombie_vision_fov_deg):
-            if world.rng.random() < cfg.zombie_detect_chance:
-                d = (s.x - z.x) ** 2 + (s.y - z.y) ** 2
-                if d < best_d:
-                    best_d, visible = d, s
+            # detection is probabilistic AND distance-scaled: far survivors in
+            # the cone are easy to miss, point-blank is nearly certain
+            d = math.hypot(s.x - z.x, s.y - z.y)
+            p = cfg.zombie_detect_chance * (1.0 - 0.7 * d / cfg.zombie_vision_range)
+            if world.rng.random() < p and d < best_d:
+                best_d, visible = d, s
 
     if visible is not None:
         z.state = "chase"
@@ -29,10 +31,13 @@ def think(world, z):
     elif z.state == "chase" and world.t - z.last_seen > cfg.zombie_memory_ticks:
         z.state = "investigate"
         z.target = z.last_known
+        z.inv_since = world.t
 
     if z.state != "chase":
         v, tile = world.noise.strongest(z.x, z.y, int(cfg.zombie_hearing_radius))
         if tile is not None and v > cfg.noise_hear_threshold:
+            if z.state != "investigate":
+                z.inv_since = world.t
             z.state = "investigate"
             z.target = tile
 
@@ -42,6 +47,7 @@ def think(world, z):
         if d < 0.5:
             z.state = "investigate"
             z.target = z.last_known
+            z.inv_since = world.t
         else:
             z.vel = (dx / d * cfg.zombie_chase_speed, dy / d * cfg.zombie_chase_speed)
             z.heading = math.atan2(dy, dx)
@@ -51,7 +57,9 @@ def think(world, z):
     if z.state == "investigate" and z.target is not None:
         dx, dy = z.target[0] + 0.5 - z.x, z.target[1] + 0.5 - z.y
         d = math.hypot(dx, dy)
-        if d < 0.7:
+        # unreachable target (behind walls, noise faded): give up after a while
+        # instead of grinding the same wall forever
+        if d < 0.7 or world.t - z.inv_since > 240:
             z.state = "wander"
             z.target = None
         else:

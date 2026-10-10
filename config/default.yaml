@@ -15,6 +15,26 @@ vision_fov_deg: 110.0
 survivor_walk: 0.10
 survivor_run: 0.17
 
+hunger_rate: 0.060
+thirst_rate: 0.080
+hunger_damage: 0.06
+
+melee_damage: 34.0
+melee_chance: 0.55
+melee_cooldown: 18
+fight_hp_threshold: 60.0
+danger_radius: 5.0
+
+# guns (looted, not spawned-with)
+gun_range: 6.0
+gun_damage: 60.0
+gun_chance: 0.75
+gun_cooldown: 8
+gun_noise: 100.0
+ammo_per_crate: 8
+n_guns_spawn: 4
+n_ammo_spawn: 8
+
 bite_infection_chance: 0.65
 incubation_ticks: 900
 reanimation_delay: 150

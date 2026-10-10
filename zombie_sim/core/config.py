@@ -23,15 +23,24 @@ class Config:
     survivor_walk: float = 0.10           # tiles per tick
     survivor_run: float = 0.17
     survivor_hp: float = 100.0
-    hunger_rate: float = 0.045            # per tick
-    thirst_rate: float = 0.060
-    hunger_damage: float = 0.05           # hp lost per tick at max hunger/thirst
+    hunger_rate: float = 0.060            # per tick — needs must shape mid-game routes
+    thirst_rate: float = 0.080
+    hunger_damage: float = 0.06           # hp lost per tick at max hunger/thirst
     # survivor combat
     melee_damage: float = 34.0
     melee_chance: float = 0.55
     melee_cooldown: int = 18
     fight_hp_threshold: float = 60.0      # only stand and fight above this hp
     danger_radius: float = 5.0            # flee when a zombie is closer than this
+    # guns (looted, not spawned-with)
+    gun_range: float = 6.0
+    gun_damage: float = 60.0
+    gun_chance: float = 0.75
+    gun_cooldown: int = 8
+    gun_noise: float = 100.0
+    ammo_per_crate: int = 8
+    n_guns_spawn: int = 4                 # guns placed on procedural maps (rare)
+    n_ammo_spawn: int = 8                 # ammo crates placed on procedural maps
     # zombie body
     zombie_walk: float = 0.055
     zombie_chase_speed: float = 0.115
