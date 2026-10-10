@@ -26,6 +26,12 @@ def rollout(envs, policy, steps_per_env, gamma, lam):
     """Collect steps_per_env world-steps from every env; returns flat PPO arrays."""
     keys, trajs = [], {}
     rew_all = []
+    # finish episodes that ended during the previous rollout BEFORE building
+    # trajectories, so recycled agent ids never mix into live ones
+    for env in envs:
+        if env.pending_reset:
+            env.reset()
+
     for i, env in enumerate(envs):
         for aid in env.obs().keys():
             k = (i, aid)
@@ -52,6 +58,11 @@ def rollout(envs, policy, steps_per_env, gamma, lam):
 
         next_cur = {}
         for i, env in enumerate(envs):
+            if env.pending_reset:
+                # episode already ended and its stats are waiting for the
+                # controller — freeze until the next rollout boundary
+                next_cur[i] = {}
+                continue
             acts_i = {aid: acts[(i, aid)] for aid in cur[i]
                       if (i, aid) in acts and trajs[(i, aid)]["alive"]}
             ob2, rew, done, info = env.step(acts_i)
@@ -77,10 +88,6 @@ def rollout(envs, policy, steps_per_env, gamma, lam):
                 else:
                     t["next_obs"] = None
                     t["alive"] = False
-            if done:
-                # episode ended: reset so the world doesn't keep farming
-                # terminal bonuses past the horizon
-                next_cur[i] = env.reset()
         cur = next_cur
 
     obs_l, act_l, adv_l, ret_l, logp_l = [], [], [], [], []

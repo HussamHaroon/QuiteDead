@@ -57,6 +57,7 @@ class PPO:
                  minibatch=1024, ent_coef=0.01, vf_coef=0.5, max_grad_norm=0.5,
                  gamma=0.995, lam=0.95, device="cpu", seed=0):
         torch.manual_seed(seed)
+        self.rng = np.random.default_rng(seed)
         self.net = ActorCritic(obs_dim, act_dim).to(device)
         self.opt = torch.optim.Adam(self.net.parameters(), lr=lr)
         self.clip, self.epochs, self.minibatch = clip, epochs, minibatch
@@ -77,7 +78,7 @@ class PPO:
         nbatch = 0
         idx_all = np.arange(n)
         for _ in range(self.epochs):
-            np.random.shuffle(idx_all)
+            self.rng.shuffle(idx_all)
             for start in range(0, n, self.minibatch):
                 idx = idx_all[start:start + self.minibatch]
                 if len(idx) < 8:

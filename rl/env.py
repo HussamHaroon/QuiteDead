@@ -30,6 +30,8 @@ R_DEATH = -10.0
 R_STEP = -0.002
 R_NEED = -0.004
 R_SURVIVE = 4.0
+R_DEPOSIT = 3.0   # per item deposited in the safe house ("deposit" event, n items)
+R_GUN = 1.0       # bonus for picking up a gun (loot event with kind == "gun")
 
 
 def obs_for(world, s):
@@ -89,7 +91,6 @@ def apply_action(world, s, a):
     cfg = world.cfg
     s.path = None
     s.goal = None
-    s.fear = 0.6  # RL movers always travel at run speed -> run-level noise
     if a == 0:
         s.vel = (0.0, 0.0)
         s.action = None
@@ -98,10 +99,15 @@ def apply_action(world, s, a):
         s.vel = (dx * cfg.survivor_run, dy * cfg.survivor_run)
         s.heading = math.atan2(dy, dx)
         s.action = None
-    else:  # attack nearest zombie in melee range
+    else:  # action 9 "engage": attack the nearest visible zombie within gun/melee reach
+        # The core's survivor_attacks resolves shoot-vs-melee (gun+ammo+range+LOS ->
+        # shot, otherwise melee); the policy just chooses "engage".
+        vr = cfg.vision_range
+        fov = cfg.vision_fov_deg
+        reach = max(getattr(cfg, "gun_range", 1.3), 1.3)
         z, best = None, 1e18
-        for o in world.spatial_z.query(s.x, s.y, 1.3):
-            if o.alive:
+        for o in world.spatial_z.query(s.x, s.y, reach):
+            if o.alive and can_see(world.game_map, s, o.x, o.y, vr, fov):
                 d = (o.x - s.x) ** 2 + (o.y - s.y) ** 2
                 if d < best:
                     best, z = d, o
@@ -129,6 +135,7 @@ class SurvivorEnv:
         self.world = None
         self.episode = 0
         self.last_stats = None
+        self.pending_reset = False
 
     def reset(self):
         # priority: controller override > stay on current level > static level
@@ -137,7 +144,8 @@ class SurvivorEnv:
             lvl = self.current_level if self.current_level is not None else self.fixed_level
         self.next_level = None
         self.current_level = lvl
-        seed = self.base_seed * 100000 + self.episode * 7919
+        self.pending_reset = False
+        seed = self.base_seed * 100000 + self.env_index * 4099 + self.episode * 7919
         overrides = {"seed": seed}
         if lvl is not None:
             overrides.update({"n_zombies": lvl.n_zombies,
@@ -161,8 +169,47 @@ class SurvivorEnv:
             if s.alive:
                 apply_action(w, s, int(actions.get(s.id, 0)))
 
+        # RL agents have no eat/drink/heal actions: auto-consume at the same
+        # thresholds the scripted brain uses, so looted supplies matter.
+        for s in w.survivors:
+            if s.alive:
+                if s.hunger > 70 and s.inventory["food"] > 0:
+                    s.action = ("eat", None)
+                elif s.thirst > 70 and s.inventory["water"] > 0:
+                    s.action = ("drink", None)
+                elif s.hp < 45 and s.inventory["meds"] > 0:
+                    s.action = ("heal", None)
+
         log_i0 = len(w.log.events)
         w.step()
+
+        # keep the RL agents' memory/fear features alive (the scripted brain
+        # writes these for its agents; RL agents bypass it)
+        cfg = w.cfg
+        vr = cfg.vision_range
+        for s in w.survivors:
+            if not s.alive:
+                continue
+            vis = [z for z in w.spatial_z.query(s.x, s.y, vr)
+                   if z.alive and can_see(w.game_map, s, z.x, z.y, vr, cfg.vision_fov_deg)]
+            if vis:
+                d = min(math.hypot(z.x - s.x, z.y - s.y) for z in vis)
+                s.fear = min(1.0, max(s.fear - 0.004, 1.0 - d / vr))
+                for z in vis:
+                    s.memory_z[z.id] = (z.x, z.y, w.t)
+            else:
+                s.fear = max(0.0, s.fear - 0.004)
+            for sid, sup in w.supplies.items():
+                if sup.taken or sid in s.memory_sup:
+                    continue
+                if (sup.x - s.x) ** 2 + (sup.y - s.y) ** 2 <= vr * vr \
+                        and can_see(w.game_map, s, sup.x, sup.y, vr, cfg.vision_fov_deg):
+                    s.memory_sup[sid] = (sup.x, sup.y)
+            for sid in [k for k, (_, _, tk) in s.memory_z.items() if w.t - tk > 900]:
+                del s.memory_z[sid]
+            for sid in [k for k, xy in s.memory_sup.items()
+                        if sid in w.supplies and w.supplies[sid].taken]:
+                del s.memory_sup[sid]
 
         rew = {sid: R_STEP for sid in self._start_ids if w.agents_by_id[sid].alive}
         for s in w.survivors:
@@ -174,6 +221,13 @@ class SurvivorEnv:
         for e in w.log.events[log_i0:]:
             if e["type"] == "loot":
                 rew[e["who"]] = rew.get(e["who"], 0.0) + R_LOOT
+                if e.get("kind") == "gun":
+                    rew[e["who"]] = rew.get(e["who"], 0.0) + R_GUN
+            elif e["type"] == "deposit":
+                # safe-house deposit: ("deposit", who, n) — n items added to stockpile
+                who = e.get("who")
+                if who is not None:
+                    rew[who] = rew.get(who, 0.0) + R_DEPOSIT * e.get("n", 0)
             elif e["type"] == "kill":
                 rew[e["killer"]] = rew.get(e["killer"], 0.0) + R_KILL
             elif e["type"] == "bite":
@@ -184,6 +238,7 @@ class SurvivorEnv:
         survivors_alive, _, _ = w.counts()
         done = survivors_alive == 0 or w.t >= self.horizon
         if done:
+            self.pending_reset = True
             for s in w.survivors:
                 if s.alive:
                     rew[s.id] = rew.get(s.id, 0.0) + R_SURVIVE

@@ -60,6 +60,7 @@ def main():
     big = pygame.font.SysFont("consolas", 24, bold=True)
 
     episode = 1
+    ep_kills0 = 0
     first_lvl = env.world.level
     bank = load_bank(first_lvl.theme if first_lvl is not None else None)
     last_theme = first_lvl.theme if first_lvl is not None else None
@@ -80,21 +81,17 @@ def main():
                 if s.alive:
                     a, _, _ = policy.act(obs_for(w, s)[None], deterministic=True)
                     apply_action(w, s, int(a[0]))
-            done = False
-            log_i0 = len(w.log.events)
             w.step()
-            if w.counts()[0] == 0 or w.t >= args.horizon:
-                done = True
             loot_now = w.log.count("loot")
 
-            if done:
+            if w.counts()[0] == 0 or w.t >= args.horizon:
                 surv, inf, zomb = w.counts()
+                kills = w.log.count("kill") - ep_kills0
                 if surv > 0:
                     banner = (f"EPISODE {episode} SURVIVED  -  {surv}/{args.survivors} ALIVE",
                               f"loot {loot_now}  -  reloading improved policy...",
                               (120, 235, 120))
                 else:
-                    kills = sum(1 for e in w.log.events[log_i0 - w.t:] if e["type"] == "kill")
                     banner = (f"EPISODE {episode} FAILED  -  entire squad lost",
                               f"loot {loot_now}  -  reloading policy...",
                               (235, 90, 90))
@@ -120,6 +117,7 @@ def main():
                 last_theme = lvl.theme
             background = _prerender_map(env.world, getattr(bank, "map_tiles", None))
             rot_cache.clear()
+            ep_kills0 = env.world.log.count("kill")
             banner = None
 
         w = env.world
