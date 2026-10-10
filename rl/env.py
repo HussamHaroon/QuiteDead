@@ -326,4 +326,5 @@ class SurvivorEnv:
                 "stockpile": w.stockpile,
             }
         dead = {sid for sid in self._start_ids if not w.agents_by_id[sid].alive}
-        return self.obs(), rew, done, {"dead": dead}
+        truncated = bool(done and survivors_alive > 0 and not won)
+        return self.obs(), rew, done, {"dead": dead, "truncated": truncated}

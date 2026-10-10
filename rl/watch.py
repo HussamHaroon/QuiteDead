@@ -90,7 +90,7 @@ def main():
                 if img is not None:
                     screen.blit(img, img.get_rect(center=_to_px(sup.x, sup.y)))
                 else:
-                    pygame.draw.circle(screen, SUPPLY_COLORS[sup.kind], _to_px(sup.x, sup.y), 3)
+                    pygame.draw.circle(screen, SUPPLY_COLORS.get(sup.kind, (255, 255, 255)), _to_px(sup.x, sup.y), 3)
         sel = next((s for s in w.survivors if s.alive), None)
         if sel is not None:
             _draw_vision_cone(screen, w, sel)

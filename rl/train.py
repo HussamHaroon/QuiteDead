@@ -79,7 +79,8 @@ def rollout(envs, policy, steps_per_env, gamma, lam):
                 t["rew"].append(rew.get(aid, 0.0))
                 rew_all.append(rew.get(aid, 0.0))
                 agent_dead = aid in info["dead"]
-                t["done"].append(1.0 if (agent_dead or done) else 0.0)
+                true_terminal = agent_dead or (done and not info.get("truncated", False))
+                t["done"].append(1.0 if true_terminal else 0.0)
                 if agent_dead:
                     t["next_obs"] = None
                     t["alive"] = False
@@ -173,7 +174,7 @@ def main():
     eval_wr = csv.writer(eval_f)
     if os.path.getsize(eval_path) == 0:
         eval_wr.writerow(["update", "level", "surv_rate", "quota", "loot",
-                          "ticks", "stockpile"])
+                          "ticks", "stockpile", "trained"])
 
     print(f"QuiteDead RL training | {args.envs} envs x {args.survivors} survivors "
           f"| map {args.size}x{args.size} | {args.zombies} zombies | -> {run_dir}",
@@ -275,7 +276,8 @@ def main():
                     st = eenv.last_stats
                     surv_r = st["survivors"] / args.survivors
                     eval_wr.writerow([upd, lvl.name, f"{surv_r:.3f}", st["quota"],
-                                      st["supplies"], st["ticks"], st["stockpile"]])
+                                      st["supplies"], st["ticks"], st["stockpile"],
+                                      int(lvl.idx <= cur_level)])
                     eval_f.flush()
                     print(f"  EVAL upd {upd} [{lvl.name}]: surv {surv_r:.2f} "
                           f"quota {st['quota']} stock {st['stockpile']}/{lvl.win_stock} "

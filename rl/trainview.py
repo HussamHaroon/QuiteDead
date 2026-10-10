@@ -45,7 +45,7 @@ def main():
         try:
             policy.load_state_dict(torch.load(ckpt_path, map_location="cpu"))
             break
-        except (FileNotFoundError, RuntimeError):
+        except (OSError, RuntimeError):
             if waited == 0.0:
                 print(f"waiting for the first readable checkpoint in {args.run_dir} ...",
                       flush=True)
@@ -123,7 +123,8 @@ def main():
             update_senses(w)
             loot_now = w.log.count("loot")
 
-            if w.counts()[0] == 0 or w.t >= env.horizon:
+            won = w.level is not None and w.stockpile >= w.level.win_stock
+            if w.counts()[0] == 0 or won or w.t >= env.horizon:
                 surv, inf, zomb = w.counts()
                 kills = w.log.count("kill") - ep_kills0
                 quota = (w.level is not None and w.stockpile >= w.level.win_stock)
@@ -148,7 +149,7 @@ def main():
                 if os.path.getmtime(ckpt_path) != loaded_at:
                     policy.load_state_dict(torch.load(ckpt_path, map_location="cpu"))
                     loaded_at = os.path.getmtime(ckpt_path)
-            except (FileNotFoundError, RuntimeError):
+            except (OSError, RuntimeError):
                 pass
             _read_trainer_state()
             episode += 1
@@ -245,7 +246,7 @@ def main():
                     screen.blit(img, img.get_rect(
                         center=(_to_px(sup.x, sup.y)[0], _to_px(sup.x, sup.y)[1] - 2 + bob)))
                 else:
-                    pygame.draw.circle(screen, SUPPLY_COLORS[sup.kind], _to_px(sup.x, sup.y), 3)
+                    pygame.draw.circle(screen, SUPPLY_COLORS.get(sup.kind, (255, 255, 255)), _to_px(sup.x, sup.y), 3)
 
         af = pygame.time.get_ticks() // 90
         for s in w.survivors:

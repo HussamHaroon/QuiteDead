@@ -125,7 +125,7 @@ def combat_tick(world):
         if target is None or best > 0.8 ** 2:
             continue  # spatial query over-approximates cell overlap — enforce true reach
         z.attack_cd = cfg.zombie_attack_cooldown
-        world.noise.emit(z.x, z.y, 5.0)
+        world.noise.emit(z.x, z.y, cfg.noise_combat)
         if world.rng.random() < cfg.zombie_attack_chance:
             if not target.infected and world.rng.random() < cfg.bite_infection_chance:
                 target.infected = True

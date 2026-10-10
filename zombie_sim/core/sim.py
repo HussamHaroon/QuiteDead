@@ -116,6 +116,7 @@ class World:
         for _ in range(max(0, self.cfg.n_ammo_spawn - placed)):
             x, y = self._rand_open_tile(road)
             self._add_supply(x, y, "ammo")
+        placed_bats = 0
         if self.safehouse is not None:
             x0, y0, sw, sh = self.safehouse
             if sw > 2 and sh > 2:
@@ -123,7 +124,8 @@ class World:
                 ty = self.rng.randrange(y0 + 1, y0 + sh - 1)
                 if not self.game_map.blocked(tx, ty):
                     self._add_supply(tx + 0.5, ty + 0.5, "bat")
-        for _ in range(max(0, self.cfg.n_bats_spawn - 1)):
+                    placed_bats = 1
+        for _ in range(max(0, self.cfg.n_bats_spawn - placed_bats)):
             x, y = self._rand_open_tile((FLOOR, ROAD))
             self._add_supply(x, y, "bat")
 

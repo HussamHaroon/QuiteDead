@@ -41,7 +41,7 @@ def think(world, z):
             if z.state != "investigate":
                 z.inv_since = world.t
             z.state = "investigate"
-            z.target = tile
+            z.target = (tile[0] + 0.5, tile[1] + 0.5)
 
     if z.state == "chase" and z.last_known is not None:
         dx, dy = z.last_known[0] - z.x, z.last_known[1] - z.y
@@ -57,7 +57,7 @@ def think(world, z):
             return
 
     if z.state == "investigate" and z.target is not None:
-        dx, dy = z.target[0] + 0.5 - z.x, z.target[1] + 0.5 - z.y
+        dx, dy = z.target[0] - z.x, z.target[1] - z.y
         d = math.hypot(dx, dy)
         # unreachable target (behind walls, noise faded): give up after a while
         # instead of grinding the same wall forever

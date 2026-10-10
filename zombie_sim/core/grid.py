@@ -41,6 +41,13 @@ def generate_map(rng: random.Random, w: int, h: int) -> GameMap:
             if y + 1 < h - 1:
                 t[y + 1][x] = ROAD
 
+    # borders BEFORE buildings: side_clear() must never mistake the edge for
+    # open ground, or buildings get doors into the border wall (sealed pockets)
+    for x in range(w):
+        t[0][x] = t[h - 1][x] = WALL
+    for y in range(h):
+        t[y][0] = t[y][w - 1] = WALL
+
     bx = [0] + [x + 2 for x in road_xs] + [w]
     by = [0] + [y + 2 for y in road_ys] + [h]
     for i in range(len(bx) - 1):
@@ -54,11 +61,6 @@ def generate_map(rng: random.Random, w: int, h: int) -> GameMap:
             bxi = rng.randint(x0, x1 - bw)
             byi = rng.randint(y0, y1 - bh)
             _carve_building(m, rng, bxi, byi, bw, bh)
-
-    for x in range(w):
-        t[0][x] = t[h - 1][x] = WALL
-    for y in range(h):
-        t[y][0] = t[y][w - 1] = WALL
     return m
 
 

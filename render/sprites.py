@@ -21,6 +21,7 @@ PICKUP_SPRITES = {
     "meds": "Bandage",
     "gun": "Pistol",
     "ammo": "Ammo-crate_Red",
+    "bat": "Bat",
 }
 
 # zombie id -> visual type (walker / axe brute / big tank)
@@ -108,7 +109,7 @@ class TLSSprites:
         brick = pygame.image.load(wall_path).convert_alpha()
 
         def tile(img, tx, ty):
-            return pygame.transform.scale_by(img.subsurface((tx * 16, ty * 16, 16, 16)), 2)
+            return img.subsurface((tx * 16, ty * 16, 16, 16)).copy()
 
         tint = self.theme.get("wall_tint")
         if tint:
@@ -199,8 +200,10 @@ class KenneySprites:
             except (FileNotFoundError, pygame.error):
                 img = pygame.image.load(os.path.join(base, skins[0]))
             self.skins.append(pygame.transform.smoothscale(img.convert_alpha(), size))
-        self.zombie = pygame.transform.smoothscale(
+        self.zombie_img = pygame.transform.smoothscale(
             pygame.image.load(os.path.join(base, "Zombie 1/zoimbie1_hold.png")).convert_alpha(), size)
+        self.surv_death = {}
+        self.zomb_death = {}
 
     @staticmethod
     def _rotated(cache, img, heading):
@@ -217,8 +220,19 @@ class KenneySprites:
     def survivor(self, heading, moving, frame, skin=0, cache=None):
         return self._rotated(cache, self.skins[skin % len(self.skins)], heading)
 
+    @staticmethod
+    def _dir_for(heading):
+        import math
+        dx, dy = math.cos(heading), math.sin(heading)
+        if abs(dx) > abs(dy):
+            return ("sideleft",) if dx < 0 else ("side",)
+        return ("up",) if dy < 0 else ("down",)
+
+    def prop(self, relpath):
+        return None
+
     def zombie(self, ztype, heading, moving, frame, cache=None):
-        return self._rotated(cache, self.zombie, heading)
+        return self._rotated(cache, self.zombie_img, heading)
 
     def pickup(self, kind):
         return None

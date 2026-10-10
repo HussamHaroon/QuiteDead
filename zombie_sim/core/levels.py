@@ -92,6 +92,8 @@ def _build(idx, d):
         supplies.append((x + 0.5, y + 0.5, "gun"))
     for x, y in d.get("ammo", []):
         supplies.append((x + 0.5, y + 0.5, "ammo"))
+    for x, y in d.get("bats", []):
+        supplies.append((x + 0.5, y + 0.5, "bat"))
     for x, y, kind in supplies:
         if m.blocked(int(x), int(y)):
             raise ValueError(f"level '{d.get('name', idx)}': supply {kind} at "

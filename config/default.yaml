@@ -30,7 +30,7 @@ bat_cooldown: 12
 bat_noise: 15.0
 shove_cooldown: 12
 shove_push: 0.6
-shove_noise: 5.0
+shove_noise: 8.0
 gun_range: 6.0
 gun_damage: 60.0
 gun_chance: 0.75

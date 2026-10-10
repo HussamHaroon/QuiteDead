@@ -40,7 +40,7 @@ class Config:
     bat_noise: float = 15.0
     shove_cooldown: int = 12
     shove_push: float = 0.6
-    shove_noise: float = 5.0
+    shove_noise: float = 8.0
     gun_range: float = 6.0
     gun_damage: float = 60.0
     gun_chance: float = 0.75

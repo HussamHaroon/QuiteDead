@@ -21,7 +21,7 @@ COLORS = {
 }
 SUPPLY_COLORS = {
     "food": (232, 146, 58), "water": (86, 156, 232), "meds": (226, 88, 96),
-    "gun": (210, 210, 225), "ammo": (225, 95, 75),
+    "gun": (210, 210, 225), "ammo": (225, 95, 75), "bat": (205, 160, 90),
 }
 
 ASSET_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -146,7 +146,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
     win_reason = None  # "stock": the camp's supply quota was met
 
     def _new_outbreak():
-        nonlocal world, background, selected, extinct, won, win_reason
+        nonlocal world, background, selected, extinct, won, win_reason, scanned_events
         world = _make_world(cfg, level=level)
         background = _prerender_map(world, getattr(bank, "map_tiles", None))
         selected = next((s for s in world.survivors if s.alive), None)
@@ -314,7 +314,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                     screen.blit(img, img.get_rect(
                         center=(_to_px(sup.x, sup.y)[0], _to_px(sup.x, sup.y)[1] - 2 + bob)))
                 else:
-                    pygame.draw.circle(screen, SUPPLY_COLORS[sup.kind], _to_px(sup.x, sup.y), 3)
+                    pygame.draw.circle(screen, SUPPLY_COLORS.get(sup.kind, (255, 255, 255)), _to_px(sup.x, sup.y), 3)
                     pygame.draw.circle(screen, (235, 235, 235), _to_px(sup.x, sup.y), 3, 1)
 
         if show_cone and selected is not None and selected.alive:

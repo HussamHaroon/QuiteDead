@@ -78,7 +78,7 @@
   size: 48
   n_zombies: 14
   advance_at: 0.65
-  bats: [[20, 5], [30, 21], [10, 43]]
+  bats: [[20, 5], [31, 21], [10, 43]]
   safehouse: [19, 30, 6, 6]      # just south of the center crossroads
   win_stock: 20
   theme:
