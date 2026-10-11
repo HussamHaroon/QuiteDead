@@ -52,10 +52,16 @@ def run_episode(brain, level, seed, survivors, horizon, surv_policy=None):
             from env import obs_for, apply_action  # noqa: E402
             for s in w.survivors:
                 if s.alive:
-                    a, _, _ = surv_policy.act(obs_for(w, s)[None], deterministic=True)
+                    a, _, _ = surv_policy.act(obs_for(w, s)[None], deterministic=False)
                     apply_action(w, s, int(a[0]))
         # scripted = default utility brain; World.step already drives it
-        w.step()
+        if brain == "rl":
+            from env import auto_consume, update_senses
+            auto_consume(w)
+            w.step()
+            update_senses(w)
+        else:
+            w.step()
         if quota_met_tick is None and w.stockpile >= (level.win_stock if level else 8):
             quota_met_tick = t
         if w.counts()[0] == 0:
