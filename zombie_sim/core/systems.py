@@ -34,12 +34,21 @@ def move_agents(world):
         if vx == 0.0 and vy == 0.0:
             continue
         old_x, old_y = a.x, a.y
-        # zombies cannot enter the safe house — it's a sanctuary
+        # zombies cannot enter OR move within the safe house — it's a sanctuary.
+        # Reanimated zombies inside get pushed out to the nearest open tile.
         if a.kind == "zombie" and world.safehouse is not None:
             x0, y0, sw, sh = world.safehouse
             nx, ny = a.x + vx, a.y + vy
             if x0 <= nx < x0 + sw and y0 <= ny < y0 + sh:
                 vx, vy = 0.0, 0.0
+                # if the zombie is somehow already inside (reanimation), push out
+                if x0 <= a.x < x0 + sw and y0 <= a.y < y0 + sh:
+                    a.y = y0 + sh + 0.5  # push below the safe house (door side)
+                    if not m.walkable(a.x, a.y):
+                        a.x = x0 - 0.5   # try left side
+                        if not m.walkable(a.x, a.y):
+                            a.x = x0 + sw + 0.5  # right side
+                    vx = vy = 0.0
         if vx != 0.0 or vy != 0.0:
             if m.walkable(a.x + vx, a.y):
                 a.x += vx
@@ -270,6 +279,15 @@ def die(world, agent, cause):
 
 
 def spawn_zombie(world, x, y):
+    # reanimation inside the safe house: push the new zombie outside immediately
+    if world.safehouse is not None:
+        x0, y0, sw, sh = world.safehouse
+        if x0 <= x < x0 + sw and y0 <= y < y0 + sh:
+            y = y0 + sh + 0.5
+            if not world.game_map.walkable(x, y):
+                x = x0 - 0.5
+                if not world.game_map.walkable(x, y):
+                    x = x0 + sw + 0.5
     z = Zombie(world.next_id(), x, y, hp=world.cfg.zombie_hp)
     world.zombies.append(z)
     world.agents_by_id[z.id] = z
