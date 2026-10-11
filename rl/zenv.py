@@ -24,7 +24,7 @@ DIRS4 = [(0, -1), (1, 0), (0, 1), (-1, 0)]
 
 R_BITE = 3.0
 R_KILL = 6.0
-R_STEP = -0.005                  # 1500 ticks = -7.5; a bite pays +3 — hunting wins
+R_STEP = -0.03                   # zombies are restless — standing still is unnatural
 R_WIN = 5.0
 R_LOSE = -3.0
 R_SHAPE = 0.05                   # strong approach gradient toward prey
