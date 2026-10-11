@@ -54,8 +54,8 @@ class Config:
     n_ammo_spawn: int = 8                 # ammo crates placed on procedural maps
     n_bats_spawn: int = 4                 # bats placed on procedural maps
     # zombie body
-    zombie_walk: float = 0.08             # slow shamble
-    zombie_chase_speed: float = 0.19      # FASTER than survivor walk, slower than run
+    zombie_walk: float = 0.05             # slow shamble
+    zombie_chase_speed: float = 0.13      # faster than survivor WALK (0.10) but slower than RUN (0.17)
     zombie_vision_range: float = 9.0
     zombie_vision_fov_deg: float = 130.0
     zombie_detect_chance: float = 0.65
