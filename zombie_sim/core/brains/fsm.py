@@ -23,15 +23,22 @@ def think(world, z):
     m = world.game_map
 
     # ---- vision: is a survivor visible right now? ----
+    # survivors inside the safe house are INVISIBLE to zombies — the walls
+    # block sight and the zombie loses interest once prey enters sanctuary
     visible = None
     best_d = 1e18
+    sh = world.safehouse  # (x0, y0, w, h) or None
     for s in world.spatial_s.query(z.x, z.y, cfg.zombie_vision_range):
-        if s.alive and s.kind == "survivor" \
-                and can_see(m, z, s.x, s.y, cfg.zombie_vision_range, cfg.zombie_vision_fov_deg):
-            d = math.hypot(s.x - z.x, s.y - z.y)
-            p = cfg.zombie_detect_chance * (1.0 - 0.5 * d / cfg.zombie_vision_range)
-            if world.rng.random() < p and d < best_d:
-                best_d, visible = d, s
+        if s.alive and s.kind == "survivor":
+            if sh is not None:
+                sx0, sy0, sw_, shh = sh
+                if sx0 <= s.x < sx0 + sw_ and sy0 <= s.y < sy0 + shh:
+                    continue  # inside the safe house — invisible to zombies
+            if can_see(m, z, s.x, s.y, cfg.zombie_vision_range, cfg.zombie_vision_fov_deg):
+                d = math.hypot(s.x - z.x, s.y - z.y)
+                p = cfg.zombie_detect_chance * (1.0 - 0.5 * d / cfg.zombie_vision_range)
+                if world.rng.random() < p and d < best_d:
+                    best_d, visible = d, s
 
     if visible is not None:
         z.state = "chase"

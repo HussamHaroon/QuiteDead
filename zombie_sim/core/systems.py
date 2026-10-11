@@ -62,6 +62,12 @@ def move_agents(world):
             # own trail (steady 12.5/tile > hearing threshold 6.0) and chase
             # themselves instead of real prey
             if a.kind == "survivor":
+                # survivors inside the safe house are silent — the walls muffle
+                # all noise, so zombies don't congregate outside the base
+                if world.safehouse is not None:
+                    sx0, sy0, sw_, shh = world.safehouse
+                    if sx0 <= a.x < sx0 + sw_ and sy0 <= a.y < sy0 + shh:
+                        continue
                 world.noise.emit(a.x, a.y, cfg.noise_run if _is_running(a) else cfg.noise_walk)
         elif a.kind == "zombie":
             # stuck against a wall: pick a new wander direction
