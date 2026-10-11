@@ -1,34 +1,72 @@
-"""QuiteDead main menu: Simulation / Settings / Quit.
-
-  python -m render.menu   (or launched by run_sim.py with no args)
-"""
+"""QuiteDead main menu with TLS assets: buttons, background, decoration."""
+import math
 import os
 import sys
 
 import pygame
-import yaml
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-TILE = 16
-W, H = 640, 480
+W, H = 800, 600
 FPS = 30
-
-BG = (12, 14, 18)
-PANEL = (24, 28, 36)
-ACCENT = (205, 80, 60)
-ACCENT_HI = (255, 120, 90)
-TEXT = (220, 220, 220)
-TEXT_DIM = (140, 140, 150)
-
-MENU_ITEMS = ["Simulation", "Settings", "Quit"]
+ASSETS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                      "assets", "thelazystone_postapoc")
 
 
-def _load_levels():
-    from zombie_sim.core.levels import load_levels
-    p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                     "config", "levels.yaml")
-    return load_levels(p)
+def _load(path):
+    p = os.path.join(ASSETS, path)
+    return pygame.image.load(p).convert_alpha() if os.path.exists(p) else None
+
+
+def _tile_background(w, h):
+    """Create a post-apocalyptic tile background from the TLS ground tiles."""
+    ts = _load("Tiles/Background_Dark-Green_TileSet.png")
+    brick = _load("Tiles/Brick-Wall_TileSet.png")
+    if ts is None:
+        return pygame.Surface((w, h))
+    surf = pygame.Surface((w, h))
+    # fill with dark grass (tile 0,0) repeated
+    grass = ts.subsurface((0, 0, 16, 16))
+    for y in range(0, h, 16):
+        for x in range(0, w, 16):
+            surf.blit(grass, (x, y))
+    # darken
+    dark = pygame.Surface((w, h), pygame.SRCALPHA)
+    dark.fill((0, 0, 0, 140))
+    surf.blit(dark, (0, 0))
+    # scatter some road/brick patches for texture
+    import random
+    rng = random.Random(42)
+    road = ts.subsurface((4 * 16, 7 * 16, 16, 16))
+    wall = brick.subsurface((0, 0, 16, 16)) if brick else road
+    for _ in range(30):
+        tx, ty = rng.randrange(0, w - 32, 16), rng.randrange(0, h - 32, 16)
+        tile = road if rng.random() < 0.5 else wall
+        surf.blit(tile, (tx, ty))
+    surf.blit(dark, (0, 0))  # darken again after tiles
+    return surf
+
+
+def _button(text, pressed=False, font=None):
+    """Render a TLS menu button with text overlay."""
+    state = "Pressed" if pressed else "Not-Pressed"
+    img = _load(f"UI/Menu/Main Menu/Blank_{state}.png")
+    if img is None:
+        img = _load(f"UI/Menu/Main Menu/Play_{state}.png")
+    if img is None:
+        # fallback: simple rect
+        surf = pygame.Surface((200, 50))
+        surf.fill((180, 60, 50) if pressed else (120, 40, 35))
+        if font:
+            t = font.render(text, True, (255, 255, 255))
+            surf.blit(t, t.get_rect(center=surf.get_rect().center))
+        return surf
+    # scale to a reasonable button size
+    img = pygame.transform.scale(img, (220, 52))
+    if font:
+        t = font.render(text, True, (230, 230, 230))
+        img.blit(t, t.get_rect(center=img.get_rect().center))
+    return img
 
 
 def run_menu():
@@ -36,21 +74,44 @@ def run_menu():
     screen = pygame.display.set_mode((W, H))
     pygame.display.set_caption("QuiteDead")
     clock = pygame.time.Clock()
-    font_big = pygame.font.SysFont("consolas", 48, bold=True)
-    font = pygame.font.SysFont("consolas", 24)
-    font_small = pygame.font.SysFont("consolas", 14)
+
+    font_big = pygame.font.SysFont("consolas", 52, bold=True)
+    font = pygame.font.SysFont("consolas", 22)
+    font_sm = pygame.font.SysFont("consolas", 14)
+
+    bg = _tile_background(W, H)
+
+    # decorative agents: a zombie chasing a survivor across the bottom
+    zombie_img = _load("Enemies/Zombie_Small/Zombie_Small_Down_Idle-Sheet6.png")
+    survivor_img = _load("Character/Main/Idle/Character_down_idle-Sheet6.png")
+    gun_img = _load("Character/Main/Idle/Character_down_idle-Sheet6.png")
+    if zombie_img:
+        zombie_img = pygame.transform.scale_by(
+            zombie_img.subsurface((0, 0, zombie_img.get_width() // 6,
+                                   zombie_img.get_height())), 4)
+    if survivor_img:
+        survivor_img = pygame.transform.scale_by(
+            survivor_img.subsurface((0, 0, survivor_img.get_width() // 6,
+                                     survivor_img.get_height())), 4)
 
     levels = _load_levels()
     selected = 0
-    level_index = 1  # default: Parking Lot
-    settings = {"speed": 1, "survivors": 6, "show_cone": True, "show_radar": True}
+    level_index = 1
+    n_survivors = 6
+    speed = 1
+    show_cone = True
+    show_radar = True
     in_settings = False
-    setting_items = ["Level", "Survivors", "Speed", "Vision Cone", "Item Radar", "Back"]
     setting_sel = 0
+    setting_items = ["Level", "Survivors", "Speed", "Vision Cone", "Item Radar", "Back"]
 
+    menu_items = ["Simulation", "Settings", "Quit"]
     done = False
     action = None
+    t = 0.0
+
     while not done:
+        t += 0.033
         for ev in pygame.event.get():
             if ev.type == pygame.QUIT:
                 action = "quit"
@@ -58,18 +119,16 @@ def run_menu():
             elif ev.type == pygame.KEYDOWN:
                 if not in_settings:
                     if ev.key == pygame.K_UP:
-                        selected = (selected - 1) % len(MENU_ITEMS)
+                        selected = (selected - 1) % len(menu_items)
                     elif ev.key == pygame.K_DOWN:
-                        selected = (selected + 1) % len(MENU_ITEMS)
+                        selected = (selected + 1) % len(menu_items)
                     elif ev.key in (pygame.K_RETURN, pygame.K_SPACE):
-                        if MENU_ITEMS[selected] == "Quit":
-                            action = "quit"
-                            done = True
-                        elif MENU_ITEMS[selected] == "Settings":
+                        if menu_items[selected] == "Quit":
+                            action = "quit"; done = True
+                        elif menu_items[selected] == "Settings":
                             in_settings = True
-                        elif MENU_ITEMS[selected] == "Simulation":
-                            action = "sim"
-                            done = True
+                        else:
+                            action = "sim"; done = True
                 else:
                     if ev.key == pygame.K_UP:
                         setting_sel = (setting_sel - 1) % len(setting_items)
@@ -82,76 +141,94 @@ def run_menu():
                         elif name == "Level":
                             level_index = (level_index + 1) % len(levels)
                         elif name == "Survivors":
-                            settings["survivors"] = 2 if settings["survivors"] >= 8 \
-                                else settings["survivors"] + 2
+                            n_survivors = 2 if n_survivors >= 8 else n_survivors + 2
                         elif name == "Speed":
-                            settings["speed"] = {1: 0.5, 0.5: 1, 2: 3, 3: 8, 8: 2}[
-                                settings["speed"]]
+                            speed = {1: 0.5, 0.5: 1, 2: 3, 3: 8, 8: 2}[speed]
                         elif name == "Vision Cone":
-                            settings["show_cone"] = not settings["show_cone"]
+                            show_cone = not show_cone
                         elif name == "Item Radar":
-                            settings["show_radar"] = not settings["show_radar"]
+                            show_radar = not show_radar
                     elif ev.key == pygame.K_LEFT:
                         name = setting_items[setting_sel]
                         if name == "Level":
                             level_index = (level_index - 1) % len(levels)
                         elif name == "Survivors":
-                            settings["survivors"] = 8 if settings["survivors"] <= 2 \
-                                else settings["survivors"] - 2
+                            n_survivors = 8 if n_survivors <= 2 else n_survivors - 2
                     elif ev.key == pygame.K_ESCAPE:
                         in_settings = False
 
-        screen.fill(BG)
+        screen.blit(bg, (0, 0))
 
-        # title
-        title = font_big.render("QuiteDead", True, ACCENT)
+        # title with glow
+        glow = pygame.font.SysFont("consolas", 56, bold=True)
+        title_glow = glow.render("QuiteDead", True, (120, 30, 20))
+        title = font_big.render("QuiteDead", True, (220, 70, 50))
+        screen.blit(title_glow, title_glow.get_rect(center=(W // 2 + 2, 82)))
         screen.blit(title, title.get_rect(center=(W // 2, 80)))
-        sub = font_small.render("zombie apocalypse agent simulator", True, TEXT_DIM)
-        screen.blit(sub, sub.get_rect(center=(W // 2, 118)))
+        sub = font_sm.render("zombie apocalypse agent simulator", True, (180, 170, 160))
+        screen.blit(sub, sub.get_rect(center=(W // 2, 116)))
+
+        # decorative chase at the bottom
+        if zombie_img and survivor_img:
+            zx = (t * 40) % (W + 200) - 100
+            screen.blit(survivor_img, (zx, H - 100))
+            screen.blit(zombie_img, (zx - 80, H - 100))
 
         if not in_settings:
-            for i, item in enumerate(MENU_ITEMS):
-                color = ACCENT_HI if i == selected else TEXT
-                t = font.render(item, True, color)
-                y = 200 + i * 50
-                if i == selected:
-                    marker = font.render(">", True, ACCENT_HI)
-                    screen.blit(marker, (W // 2 - 100, y))
-                screen.blit(t, t.get_rect(center=(W // 2, y)))
+            for i, item in enumerate(menu_items):
+                pressed = (i == selected)
+                btn = _button(item, pressed=pressed, font=font)
+                y = 180 + i * 70
+                screen.blit(btn, btn.get_rect(center=(W // 2, y)))
         else:
-            panel = pygame.Surface((W - 80, H - 200))
-            panel.fill(PANEL)
-            screen.blit(panel, (40, 160))
+            # settings panel
+            panel = pygame.Surface((W - 120, 320), pygame.SRCALPHA)
+            panel.fill((20, 24, 32, 220))
+            pygame.draw.rect(panel, (80, 60, 50), panel.get_rect(), 2)
+            screen.blit(panel, (60, 160))
+
+            header = font.render("SETTINGS", True, (220, 100, 80))
+            screen.blit(header, header.get_rect(center=(W // 2, 185)))
+
             for i, name in enumerate(setting_items):
-                y = 180 + i * 40
                 if name == "Level":
                     val = levels[level_index].name
                 elif name == "Survivors":
-                    val = str(settings["survivors"])
+                    val = str(n_survivors)
                 elif name == "Speed":
-                    val = f"{settings['speed']}x"
+                    val = f"{speed}x"
                 elif name == "Vision Cone":
-                    val = "ON" if settings["show_cone"] else "OFF"
+                    val = "ON" if show_cone else "OFF"
                 elif name == "Item Radar":
-                    val = "ON" if settings["show_radar"] else "OFF"
+                    val = "ON" if show_radar else "OFF"
                 else:
                     val = ""
-                color = ACCENT_HI if i == setting_sel else TEXT
-                label = font.render(f"{name:<16}", True, color)
-                value = font.render(f"{val:>12}", True, TEXT)
-                screen.blit(label, (70, y))
-                screen.blit(value, (W - 160, y))
+                y = 215 + i * 36
+                sel = (i == setting_sel)
+                label_col = (255, 140, 100) if sel else (200, 200, 200)
+                label = font.render(f"  {name}", True, label_col)
+                value = font.render(f"{val}  ", True, (200, 200, 200) if not sel else (255, 200, 160))
+                screen.blit(label, (100, y))
+                screen.blit(value, (W - 200, y))
 
-        hint = font_small.render("ARROWS navigate | ENTER select | ESC back", True, TEXT_DIM)
-        screen.blit(hint, hint.get_rect(center=(W // 2, H - 30)))
+        hint = font_sm.render("ARROWS navigate  |  ENTER select  |  ESC back", True, (150, 140, 130))
+        screen.blit(hint, hint.get_rect(center=(W // 2, H - 24)))
 
         pygame.display.flip()
         clock.tick(FPS)
 
     pygame.quit()
-    return action, {"level_index": level_index, **settings}
+    return action, {"level_index": level_index, "survivors": n_survivors,
+                    "speed": speed, "show_cone": show_cone, "show_radar": show_radar}
+
+
+def _load_levels():
+    from zombie_sim.core.levels import load_levels
+    p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                     "config", "levels.yaml")
+    return load_levels(p)
 
 
 if __name__ == "__main__":
-    result, cfg = run_menu()
-    print(f"action: {result}, config: {cfg}")
+    a, c = run_menu()
+    print(a, c)

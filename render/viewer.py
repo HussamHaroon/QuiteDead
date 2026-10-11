@@ -299,9 +299,9 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
             age = pygame.time.get_ticks() - t0
             fi = min(int(age / 66), 2)  # 3 frames over 200ms
             (fd,) = bank._dir_for(heading) if hasattr(bank, "_dir_for") else ("down",)
-            frames = getattr(bank, "flash", {}).get(fd)
-            if frames:
-                img = frames[fi]
+            mflash = getattr(bank, "flash", {}).get(fd)
+            if mflash:
+                img = mflash[fi]
                 screen.blit(img, img.get_rect(center=_to_px(fx, fy)))
 
         # bullet tracers: line from shooter toward the target
