@@ -18,6 +18,22 @@ def _load(path):
     return pygame.image.load(p).convert_alpha() if os.path.exists(p) else None
 
 
+def _load_menu_bg(w, h):
+    """Load the custom menu background if available, else generate tiles."""
+    custom = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                          "..", "menu_assets",
+                          "Gemini_Generated_Image_oflwsroflwsroflw.jpg")
+    if os.path.exists(custom):
+        img = pygame.image.load(custom)
+        iw, ih = img.get_size()
+        scale = max(w / iw, h / ih)
+        img = pygame.transform.scale(img, (int(iw * scale), int(ih * scale)))
+        ox = (img.get_width() - w) // 2
+        oy = (img.get_height() - h) // 2
+        return img.subsurface((ox, oy, w, h))
+    return _tile_background(w, h)
+
+
 def _tile_background(w, h):
     """Create a post-apocalyptic tile background from the TLS ground tiles."""
     ts = _load("Tiles/Background_Dark-Green_TileSet.png")
@@ -79,12 +95,9 @@ def run_menu():
     font = pygame.font.SysFont("consolas", 22)
     font_sm = pygame.font.SysFont("consolas", 14)
 
-    bg = _tile_background(W, H)
+    bg = _load_menu_bg(W, H)
 
     # decorative agents: a zombie chasing a survivor across the bottom
-    zombie_img = _load("Enemies/Zombie_Small/Zombie_Small_Down_Idle-Sheet6.png")
-    survivor_img = _load("Character/Main/Idle/Character_down_idle-Sheet6.png")
-    gun_img = _load("Character/Main/Idle/Character_down_idle-Sheet6.png")
     if zombie_img:
         zombie_img = pygame.transform.scale_by(
             zombie_img.subsurface((0, 0, zombie_img.get_width() // 6,
@@ -167,12 +180,6 @@ def run_menu():
         screen.blit(title, title.get_rect(center=(W // 2, 80)))
         sub = font_sm.render("zombie apocalypse agent simulator", True, (180, 170, 160))
         screen.blit(sub, sub.get_rect(center=(W // 2, 116)))
-
-        # decorative chase at the bottom
-        if zombie_img and survivor_img:
-            zx = (t * 40) % (W + 200) - 100
-            screen.blit(survivor_img, (zx, H - 100))
-            screen.blit(zombie_img, (zx - 80, H - 100))
 
         if not in_settings:
             for i, item in enumerate(menu_items):
