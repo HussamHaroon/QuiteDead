@@ -21,8 +21,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from ppo import ActorCritic                      # noqa: E402
-from env import (SurvivorEnv, OBS_DIM, ACT_DIM, obs_for, apply_action,
-                 auto_consume, update_senses)  # noqa: E402
+from env import (SurvivorEnv, OBS_DIM as S_OBS_DIM, ACT_DIM as S_ACT_DIM,
+                 obs_for, apply_action, auto_consume, update_senses)  # noqa: E402
+from zenv import (OBS_DIM as Z_OBS_DIM, ACT_DIM as Z_ACT_DIM,
+                  obs_for_zombie, apply_action_zombie)  # noqa: E402
 from render.viewer import (_prerender_map, _to_px,               # noqa: E402
                            _draw_vision_cone, TILE, HUD_H, SUPPLY_COLORS)
 from render import sprites as sprites_bank        # noqa: E402
@@ -33,6 +35,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--run-dir", required=True, help="training run dir with policy.pt")
     ap.add_argument("--levels", default=None)
+    ap.add_argument("--level", type=int, default=None,
+                    help="level index (overrides the trainer's current level)")
     ap.add_argument("--survivors", type=int, default=6)
     ap.add_argument("--zomb-ckpt", default=None,
                     help="zombie policy checkpoint (default: scripted FSM zombies)")
@@ -41,7 +45,7 @@ def main():
     args = ap.parse_args()
 
     torch.set_num_threads(2)
-    policy = ActorCritic(OBS_DIM, ACT_DIM)
+    policy = ActorCritic(S_OBS_DIM, S_ACT_DIM)
     ckpt_path = os.path.join(args.run_dir, "policy.pt")
     waited = 0.0
     while True:
@@ -61,8 +65,6 @@ def main():
     train_upd = "?"
     zpolicy = None
     if args.zomb_ckpt:
-        from zenv import (OBS_DIM as Z_OBS_DIM, ACT_DIM as Z_ACT_DIM,   # noqa: E402
-                          obs_for_zombie, apply_action_zombie)
         zpolicy = ActorCritic(Z_OBS_DIM, Z_ACT_DIM)
         zpolicy.load_state_dict(torch.load(args.zomb_ckpt, map_location="cpu"))
         zpolicy.eval()
@@ -88,10 +90,13 @@ def main():
         levels = load_levels(args.levels)
         _read_trainer_state()
 
+    pinned = args.level  # None = follow the trainer's level; int = pin
     env = SurvivorEnv(base_seed=args.seed, n_survivors=args.survivors,
                       horizon=args.horizon)
-    if levels:
-        env.next_level = levels[trainer_level]
+    if levels and pinned is not None:
+        env.next_level = levels[pinned]
+    elif levels:
+        env.next_level = levels[trainer_level if pinned is None else pinned]
     env.reset()
 
     pygame.init()
@@ -174,7 +179,7 @@ def main():
             _read_trainer_state()
             episode += 1
             if levels:
-                env.next_level = levels[trainer_level]
+                env.next_level = levels[trainer_level if pinned is None else pinned]
             env.reset()
             if env.world.game_map.w * TILE != m_px:
                 m_px = env.world.game_map.w * TILE
