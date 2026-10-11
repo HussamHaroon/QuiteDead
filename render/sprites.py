@@ -183,16 +183,26 @@ class TLSSprites:
         return ("up",) if dy < 0 else ("down",)
 
     def survivor(self, heading, moving, frame, skin=0, cache=None, gun=False):
+        """Return the character sprite; gun=True composites the gun-hands
+        overlay ON TOP of the base character (not a replacement — the TLS
+        gun sheets are tiny hand+weapon overlays)."""
         anim = "run" if moving else "idle"
         (d,) = self._dir_for(heading)
-        if gun and hasattr(self, "gun_sheets") and self.gun_sheets:
-            frames = self.gun_sheets.get((anim, d)) or self.gun_sheets.get(("idle", d))
-            if frames:
-                return frames[frame % len(frames)]
         frames = self.surv_sheets.get((anim, d)) or self.surv_sheets.get(("idle", d))
         if frames is None:
             return None
-        return frames[frame % len(frames)]
+        base = frames[frame % len(frames)]
+        if gun and hasattr(self, "gun_sheets") and self.gun_sheets:
+            gframes = self.gun_sheets.get((anim, d)) or self.gun_sheets.get(("idle", d))
+            if gframes:
+                overlay = gframes[frame % len(gframes)]
+                # composite: scale overlay to match base, center it
+                if overlay.get_size() != base.get_size():
+                    overlay = pygame.transform.scale(overlay, base.get_size())
+                surf = base.copy()
+                surf.blit(overlay, (0, 0))
+                return surf
+        return base
 
     def zombie(self, ztype, heading, moving, frame, cache=None):
         kind = ZOMBIE_KINDS[ztype % len(ZOMBIE_KINDS)]

@@ -1,13 +1,15 @@
 """Run QuiteDead: headless simulation or pygame observer view.
 
 Examples:
-  python run_sim.py                          # 3000-tick headless run
-  python run_sim.py --ticks 5000             # longer
+  python run_sim.py                          # main menu (Simulation / Settings)
+  python run_sim.py --menu                   # force menu
+  python run_sim.py --view                   # interactive window directly
+  python run_sim.py --ticks 5000             # headless
   python run_sim.py --determinism            # verify same seed => same run
-  python run_sim.py --view                   # interactive window
   python run_sim.py --view --screenshot shot.png --frames 240
 """
 import argparse
+import sys
 import time
 
 from zombie_sim.core.config import Config
@@ -31,7 +33,23 @@ def main():
     ap.add_argument("--level", type=int, default=None, help="level index to play")
     ap.add_argument("--save-events", default=None, help="write event log JSONL here")
     ap.add_argument("--quiet", action="store_true")
+    ap.add_argument("--menu", action="store_true", help="force the main menu")
     args = ap.parse_args()
+
+    # --- main menu (default when no --view/--ticks/--determinism args) ---
+    if args.menu or (len(sys.argv) == 1):
+        from render.menu import run_menu
+        action, menu_cfg = run_menu()
+        if action != "sim":
+            return
+        # apply menu selections
+        args.view = True
+        args.levels = args.levels or "config/levels.yaml"
+        args.level = menu_cfg["level_index"]
+        args.survivors = menu_cfg["survivors"]
+        args.speed = menu_cfg.get("speed", 1)
+        args.show_cone = menu_cfg.get("show_cone", True)
+        args.show_radar = menu_cfg.get("show_radar", True)
 
     overrides = {"seed": args.seed, "n_survivors": args.survivors, "n_zombies": args.zombies}
     if args.brain == "random":
