@@ -22,7 +22,7 @@ def _load_menu_bg(w, h):
     """Load the custom menu background if available, else generate tiles."""
     custom = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                           "..", "menu_assets",
-                          "Gemini_Generated_Image_oflwsroflwsroflw.jpg")
+                          "menu_img.jpg")
     if os.path.exists(custom):
         img = pygame.image.load(custom)
         iw, ih = img.get_size()
@@ -96,16 +96,6 @@ def run_menu():
     font_sm = pygame.font.SysFont("consolas", 14)
 
     bg = _load_menu_bg(W, H)
-
-    # decorative agents: a zombie chasing a survivor across the bottom
-    if zombie_img:
-        zombie_img = pygame.transform.scale_by(
-            zombie_img.subsurface((0, 0, zombie_img.get_width() // 6,
-                                   zombie_img.get_height())), 4)
-    if survivor_img:
-        survivor_img = pygame.transform.scale_by(
-            survivor_img.subsurface((0, 0, survivor_img.get_width() // 6,
-                                     survivor_img.get_height())), 4)
 
     levels = _load_levels()
     selected = 0
