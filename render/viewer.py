@@ -10,7 +10,7 @@ import pygame
 
 TILE = 16
 HUD_H = 46
-SPEEDS = {pygame.K_1: 1, pygame.K_2: 2, pygame.K_3: 5, pygame.K_4: 15}
+SPEEDS = {pygame.K_1: 0.5, pygame.K_2: 1, pygame.K_3: 3, pygame.K_4: 8}
 
 COLORS = {
     0: (38, 52, 36),    # grass
@@ -141,6 +141,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
     rot_cache = {}
     selected = next((s for s in world.survivors if s.alive), None)
     ticks_per_frame = 10 if screenshot else 1  # screenshot runs are for verification
+    tick_accum = 0.0  # fractional-speed accumulator
     paused = False
     show_cone = True
     show_noise = False
@@ -150,6 +151,8 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
     scanned_events = 0         # how many log events the flash scanner has seen
     decals = []                # death stains — persist for the whole episode
     dying = []                 # death animations in flight [(x,y,heading,kind,who,ms)]
+    muzzle_flashes = []        # [(x, y, heading, ms)] — 3-frame muzzle burst
+    bullets = []               # [(x0, y0, x1, y1, ms)] — bullet tracers
     night_overlay = pygame.Surface((m_px, m_px), pygame.SRCALPHA)
     extinct = False
     extinct_at = 0
@@ -200,9 +203,12 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                         selected = alive[idx]
 
         if not paused and not extinct and not won:
-            for _ in range(ticks_per_frame):
+            tick_accum += ticks_per_frame
+            whole = int(tick_accum)
+            tick_accum -= whole
+            for _ in range(whole):
                 world.step()
-            frame += ticks_per_frame
+            frame += whole
             win_stock = level.win_stock if level is not None else None
             if world.counts()[0] == 0:
                 extinct = True
@@ -217,6 +223,14 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
         for e in world.log.events[scanned_events:]:
             if e["type"] == "shot":
                 item_flash.append((e["x"], e["y"], pygame.time.get_ticks()))
+                # muzzle flash + bullet tracer toward the target
+                muzzle_flashes.append((e["x"], e["y"],
+                                       e.get("heading", 0.0), pygame.time.get_ticks()))
+                if "target" in e:
+                    tz = world.agents_by_id.get(e["target"])
+                    if tz is not None:
+                        bullets.append((e["x"], e["y"], tz.x, tz.y,
+                                        pygame.time.get_ticks()))
             elif e["type"] == "death":
                 decals.append((e["x"], e["y"], e.get("kind", "?")))
                 dying.append((e["x"], e["y"], e.get("heading", 0.0),
@@ -225,6 +239,9 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
         scanned_events = len(world.log.events)
         item_flash[:] = [f for f in item_flash if pygame.time.get_ticks() - f[2] < 450]
         dying[:] = [d for d in dying if pygame.time.get_ticks() - d[5] < 500]
+        muzzle_flashes[:] = [f for f in muzzle_flashes
+                             if pygame.time.get_ticks() - f[3] < 200]
+        bullets[:] = [b for b in bullets if pygame.time.get_ticks() - b[4] < 150]
 
         screen.fill((16, 16, 20))
         screen.blit(background, (0, 0))
@@ -272,6 +289,26 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
             ring = pygame.Surface((r * 2 + 4, r * 2 + 4), pygame.SRCALPHA)
             pygame.draw.circle(ring, (255, 200, 90, a), (r + 2, r + 2), r, 2)
             screen.blit(ring, (fx * TILE - r - 2, fy * TILE - r - 2))
+
+        # muzzle flash: brief 3-frame burst at the shooter's position
+        for fx, fy, heading, t0 in muzzle_flashes:
+            age = pygame.time.get_ticks() - t0
+            fi = min(int(age / 66), 2)  # 3 frames over 200ms
+            (fd,) = bank._dir_for(heading) if hasattr(bank, "_dir_for") else ("down",)
+            frames = getattr(bank, "flash", {}).get(fd)
+            if frames:
+                img = frames[fi]
+                screen.blit(img, img.get_rect(center=_to_px(fx, fy)))
+
+        # bullet tracers: line from shooter toward the target
+        for bx0, by0, bx1, by1, t0 in bullets:
+            k = (pygame.time.get_ticks() - t0) / 150.0
+            cx = bx0 + (bx1 - bx0) * min(k, 1.0)
+            cy = by0 + (by1 - by0) * min(k, 1.0)
+            # draw a short bright line segment (tracer)
+            pygame.draw.line(screen, (255, 240, 150),
+                             _to_px(bx0 + (cx - bx0) * 0.7, by0 + (cy - by0) * 0.7),
+                             _to_px(cx, cy), 2)
 
         if level is not None:
             for relpath, px, py in level.props:
@@ -343,7 +380,8 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
         for s in world.survivors:
             if s.alive:
                 moving = s.vel != (0.0, 0.0) or s.path is not None
-                img = bank.survivor(s.heading, moving, anim_frame, skin=s.skin, cache=rot_cache)
+                img = bank.survivor(s.heading, moving, anim_frame, skin=s.skin,
+                                    cache=rot_cache, gun=s.gun)
                 if img is not None:  # TLS bank returns None if a sheet is missing
                     r = img.get_rect(center=_to_px(s.x, s.y))
                     screen.blit(img, r)
@@ -402,7 +440,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
         win_stock = level.win_stock if level is not None else None
         line1 = (f"SURV {surv} INFECTED {inf} ZOMBIES {zomb} LOOT {loot} "
                  f"STOCK {world.stockpile}/{win_stock if win_stock is not None else '?'} "
-                 f"tick {world.t} x{ticks_per_frame if not paused else 0}"
+                 f"tick {world.t} x{ticks_per_frame if not paused else 0}g"
                  + (f" [{level.name}]" if level is not None else "")
                  + (" NIGHT" if show_daynight and _is_night(world.t) else ""))
         sel = ""
@@ -416,7 +454,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                    f"meds {selected.inventory['meds']}"
                    + ("  INFECTED" if selected.infected else ""))
         screen.blit(font.render(line1, True, (225, 225, 225)), (10, m_px + 4))
-        hint = font.render("SPACE pause | 1-4 speed | TAB agent | V cone | I items | N noise | R restart | ESC quit",
+        hint = font.render("SPACE pause | 1=slow 2=norm 3=fast 4=turbo | TAB agent | V cone | I items | N noise | ESC quit",
                            True, (120, 120, 130))
         screen.blit(hint, hint.get_rect(topright=(m_px - 8, m_px + 24)))
         sel_surf = font.render(sel, True, (150, 220, 150))

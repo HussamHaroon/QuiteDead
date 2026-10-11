@@ -191,7 +191,7 @@ def survivor_attacks(world):
             s.state_label = "SHOOTING"
             hit = world.rng.random() < cfg.gun_chance
             world.log.add(world.t, "shot", who=s.id, target=z.id, hit=bool(hit),
-                          x=round(s.x, 1), y=round(s.y, 1))
+                          x=round(s.x, 1), y=round(s.y, 1), heading=s.heading)
             if hit:
                 z.hp -= cfg.gun_damage
                 if z.hp <= 0:

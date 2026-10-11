@@ -69,6 +69,7 @@ class TLSSprites:
                 self.pickups[key] = pygame.transform.scale_by(
                     pygame.image.load(p).convert_alpha(), 1.5)
         self._load_death_sheets()
+        self._load_gun_sprites()
         self._load_map_tiles()
 
     def _load_death_sheets(self):
@@ -139,6 +140,40 @@ class TLSSprites:
                 self.surv_sheets[(anim, d)] = [
                     pygame.transform.scale_by(f, 2) for f in frames]
 
+    def _load_gun_sprites(self):
+        """Armed survivor sprites (gun in hand) + muzzle flash + bullet."""
+        self.gun_sheets = {}   # (anim, dir) -> [frames]
+        guns_base = os.path.join(self.base, "Character", "Guns", "Gun")
+        for d in ("down", "up", "side", "sideleft"):
+            label = "side-left" if d == "sideleft" else d
+            p = os.path.join(guns_base, f"Gun_{label}_idle-and-run-Sheet6.png")
+            if os.path.exists(p):
+                frames = _frames_from_sheet(p)
+                self.gun_sheets[("run", d)] = [
+                    pygame.transform.scale_by(f, 2) for f in frames]
+                self.gun_sheets[("idle", d)] = [
+                    pygame.transform.scale_by(f, 2) for f in frames]
+
+        # muzzle flash: 3-frame burst per direction
+        self.flash = {}
+        fire_base = os.path.join(self.base, "Character", "Guns", "Fire")
+        for d, fname in (("down", "Fire_Down-Sheet3.png"), ("up", "Fire_Up-Sheet3.png"),
+                         ("side", "Fire_side-Sheet3.png"), ("sideleft", "Fire_side-left-Sheet3.png")):
+            p = os.path.join(fire_base, fname)
+            if os.path.exists(p):
+                self.flash[d] = [
+                    pygame.transform.scale_by(f, 2)
+                    for f in _frames_from_sheet(p)]
+
+        # bullet projectile
+        bullet_path = os.path.join(self.base, "Character", "Guns", "Bullets",
+                                   "Pistol-bullet_Bullet.png")
+        if os.path.exists(bullet_path):
+            self.bullet_img = pygame.transform.scale_by(
+                pygame.image.load(bullet_path).convert_alpha(), 2)
+        else:
+            self.bullet_img = None
+
     @staticmethod
     def _dir_for(heading):
         import math
@@ -147,9 +182,13 @@ class TLSSprites:
             return ("sideleft",) if dx < 0 else ("side",)
         return ("up",) if dy < 0 else ("down",)
 
-    def survivor(self, heading, moving, frame, skin=0, cache=None):
+    def survivor(self, heading, moving, frame, skin=0, cache=None, gun=False):
         anim = "run" if moving else "idle"
         (d,) = self._dir_for(heading)
+        if gun and hasattr(self, "gun_sheets") and self.gun_sheets:
+            frames = self.gun_sheets.get((anim, d)) or self.gun_sheets.get(("idle", d))
+            if frames:
+                return frames[frame % len(frames)]
         frames = self.surv_sheets.get((anim, d)) or self.surv_sheets.get(("idle", d))
         if frames is None:
             return None
