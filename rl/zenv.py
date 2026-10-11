@@ -179,7 +179,7 @@ class ZombieEnv:
                 cy = sum(s.y for s in alives) / len(alives)
                 for i, z in enumerate(self.world.zombies):
                     ang = 2.399 * i  # golden-angle spread
-                    dist = 4.0 + (i % 4)
+                    dist = 2.5 + (i % 3)
                     nx, ny = cx + math.cos(ang) * dist, cy + math.sin(ang) * dist
                     if not self.world.game_map.blocked(int(nx), int(ny)):
                         z.x, z.y = nx, ny
