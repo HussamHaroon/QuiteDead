@@ -37,3 +37,5 @@ Thumbs.db
 .vscode/
 .idea/
 assets/thelazystone_postapoc/
+analysis_out/
+logs/
