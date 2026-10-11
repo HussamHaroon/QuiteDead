@@ -333,6 +333,13 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
             _draw_vision_cone(screen, world, selected)
 
         anim_frame = pygame.time.get_ticks() // 90
+        state_colors = {"LOOTING": (120, 230, 120), "RETURNING": (100, 180, 255),
+                        "FLEEING": (255, 160, 60), "SHOOTING": (255, 80, 80),
+                        "FIGHTING": (255, 120, 60), "DEPOSITING": (255, 220, 80),
+                        "EXPLORING": (180, 180, 180), "EATING": (200, 150, 100),
+                        "DRINKING": (100, 200, 255), "HEALING": (255, 150, 150),
+                        "SHOVING": (200, 200, 100), "HOLD": (150, 150, 150),
+                        "MOVE": (150, 150, 150), "ENGAGE": (255, 100, 100)}
         for s in world.survivors:
             if s.alive:
                 moving = s.vel != (0.0, 0.0) or s.path is not None
@@ -342,12 +349,28 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                     screen.blit(img, r)
                     if s.infected:
                         pygame.draw.circle(screen, (90, 230, 90), r.center, int(TILE * 0.7), 1)
+                    # state ring: colored circle showing what the brain is doing
+                    sc = state_colors.get(getattr(s, "state_label", ""), (120, 120, 120))
+                    pygame.draw.circle(screen, sc, (r.centerx, r.bottom + 3), 2)
+                    # carried-item pips above the agent
+                    carried = []
+                    if s.gun: carried.append((80, 230, 255))
+                    if s.has_bat: carried.append((205, 160, 90))
+                    if s.inventory["food"] > 0: carried.append((232, 146, 58))
+                    if s.inventory["water"] > 0: carried.append((86, 156, 232))
+                    if s.inventory["meds"] > 0: carried.append((226, 88, 96))
+                    for ci, c in enumerate(carried[:4]):
+                        pygame.draw.circle(screen, c, (r.centerx - 7 + ci * 5, r.top - 3), 2)
         for z in world.zombies:
             if z.alive:
                 moving = z.vel != (0.0, 0.0)
                 img = bank.zombie(z.id % 3, z.heading, moving, anim_frame, cache=rot_cache)
                 if img is not None:
-                    screen.blit(img, img.get_rect(center=_to_px(z.x, z.y)))
+                    r = img.get_rect(center=_to_px(z.x, z.y))
+                    screen.blit(img, r)
+                    # zombie state: red dot = chasing, gray = wandering
+                    zc = (255, 60, 60) if z.state == "chase" else (120, 120, 120)
+                    pygame.draw.circle(screen, zc, (r.centerx, r.bottom + 3), 2)
 
         if selected is not None and selected.alive:
             px, py = _to_px(selected.x, selected.y)
