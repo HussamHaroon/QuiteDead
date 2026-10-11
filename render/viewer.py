@@ -9,7 +9,7 @@ import os
 import pygame
 
 TILE = 16
-HUD_H = 46
+HUD_H = 56
 SPEEDS = {pygame.K_1: 0.5, pygame.K_2: 1, pygame.K_3: 3, pygame.K_4: 8}
 
 COLORS = {
@@ -41,7 +41,11 @@ def _is_night(t):
 
 
 def _make_world(cfg, level=None):
+    """Fresh world each time: random seed unless the user pinned one with --seed."""
     from zombie_sim.core.sim import World
+    import random as _r
+    if cfg.seed == 42:  # the default sentinel — nobody explicitly chose it
+        cfg = type(cfg)(**{**cfg.to_dict(), "seed": _r.randrange(1, 10**6)})
     return World(cfg, level=level)
 
 
@@ -434,36 +438,51 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
             screen.blit(t1, t1.get_rect(center=(m_px // 2, m_px // 2 - 14)))
             screen.blit(t2, t2.get_rect(center=(m_px // 2, m_px // 2 + 16)))
 
-        pygame.draw.rect(screen, (24, 24, 30), (0, m_px, m_px, HUD_H))
         surv, inf, zomb = world.counts()
         loot = world.log.count("loot")
-        win_stock = level.win_stock if level is not None else None
-        line1 = (f"SURV {surv} INFECTED {inf} ZOMBIES {zomb} LOOT {loot} "
-                 f"STOCK {world.stockpile}/{win_stock if win_stock is not None else '?'} "
-                 f"tick {world.t} x{ticks_per_frame if not paused else 0}g"
-                 + (f" [{level.name}]" if level is not None else "")
-                 + (" NIGHT" if show_daynight and _is_night(world.t) else ""))
-        sel = ""
-        if selected is not None:
+        # ---- HUD: clean 2-row panel ----
+        hud = pygame.Surface((m_px, HUD_H), pygame.SRCALPHA)
+        hud.fill((16, 18, 24, 230))
+        pygame.draw.line(hud, (80, 60, 50), (0, 0), (m_px, 0), 2)
+        screen.blit(hud, (0, m_px))
+
+        y1 = m_px + 6   # top row: game stats
+        y2 = m_px + 30  # bottom row: selected agent
+
+        # row 1: game stats (left) + level name (right)
+        font_stats = pygame.font.SysFont("consolas", 14, bold=True)
+        stats_left = (f"SURV {surv}  ZOMB {zomb}  INF {inf}  "
+                      f"STOCK {world.stockpile}/{win_stock if win_stock is not None else '?'}"
+                      f"  [tick {world.t}]")
+        screen.blit(font_stats.render(stats_left, True, (200, 220, 200)), (12, y1))
+
+        speed_label = f"{ticks_per_frame}x" + (" PAUSED" if paused else "")
+        right_txt = (f"[{level.name}]  {speed_label}"
+                     if level is not None else speed_label)
+        if show_daynight and _is_night(world.t):
+            right_txt += "  NIGHT"
+        rt = font_stats.render(right_txt, True, (255, 200, 120))
+        screen.blit(rt, (m_px - rt.get_width() - 12, y1))
+
+        # row 2: selected agent info — compact, no overlap
+        if selected is not None and selected.alive:
             state = getattr(selected, "state_label", "?")
-            gun = f"gun+{selected.ammo}r" if selected.gun else "unarmed"
-            sel = (f"[{selected.id}] {state:<10} {gun} hp {selected.hp:.0f} "
-                   f"hunger {selected.hunger:.0f} thirst {selected.thirst:.0f} "
-                   f"fear {selected.fear:.2f} "
-                   f"food {selected.inventory['food']} water {selected.inventory['water']} "
-                   f"meds {selected.inventory['meds']}"
-                   + ("  INFECTED" if selected.infected else ""))
-        screen.blit(font.render(line1, True, (225, 225, 225)), (10, m_px + 4))
-        hint = font.render("SPACE pause | 1=slow 2=norm 3=fast 4=turbo | TAB agent | V cone | I items | N noise | ESC quit",
-                           True, (120, 120, 130))
-        screen.blit(hint, hint.get_rect(topright=(m_px - 8, m_px + 24)))
-        sel_surf = font.render(sel, True, (150, 220, 150))
-        avail = m_px - 8 - hint.get_width() - 10 - 10  # stop before the hint
-        if avail > 0:
-            screen.blit(sel_surf, (10, m_px + 24),
-                        area=pygame.Rect(0, 0, min(sel_surf.get_width(), avail), sel_surf.get_height()))
-        else:
-            screen.blit(sel_surf, (10, m_px + 24))
+            gun = f"gun({selected.ammo})" if selected.gun else ("bat" if selected.has_bat else "—")
+            hp_col = (120, 230, 120) if selected.hp > 50 else (255, 150, 80) if selected.hp > 25 else (255, 80, 80)
+            sel_txt = (f"#{selected.id} {state}  {gun}  "
+                       f"HP {selected.hp:.0f}  HUN {selected.hunger:.0f}  "
+                       f"THI {selected.thirst:.0f}")
+            if selected.infected:
+                sel_txt += "  ⚠INFECTED"
+            st = font_stats.render(sel_txt, True, hp_col)
+            screen.blit(st, (12, y2))
+
+        # controls hint: only visible when paused (decluttered)
+        if paused:
+            help_txt = ("SPACE resume | 1=slow 2=norm 3=fast 4=turbo | TAB agent | "
+                        "V cone I radar N noise | ESC quit")
+            ht = pygame.font.SysFont("consolas", 12).render(help_txt, True, (150, 150, 160))
+            screen.blit(ht, ht.get_rect(center=(m_px // 2, y2 + 16)))
         pygame.display.flip()
 
         if screenshot and (frame >= frames or extinct or won):
