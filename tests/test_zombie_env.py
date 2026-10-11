@@ -32,9 +32,8 @@ def test_zombie_trainer_sanity(tmp_path):
     import subprocess
     r = subprocess.run(
         [sys.executable, "ztrain.py", "--updates", "2",
-         "--run-dir", str(tmp_path / "sanity_z")],
+         "--run-dir", os.path.join(str(tmp_path), "sanity_z")],
         cwd=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rl"),
         capture_output=True, text=True, timeout=300)
     assert r.returncode == 0, r.stderr[-500:]
-    assert (tmp_path / "sanity_z" / "policy.pt").exists() or \
-           (tmp_path / "sanity_z" / "metrics.csv").exists()
+    assert (tmp_path / "sanity_z" / "metrics.csv").exists()

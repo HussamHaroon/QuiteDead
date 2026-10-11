@@ -92,6 +92,7 @@ def main():
         if spec.startswith("rl:"):
             ckpt = spec.split(":", 1)[1]
             import torch
+            sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rl"))
             from ppo import ActorCritic
             from env import OBS_DIM, ACT_DIM
             surv_policy = ActorCritic(OBS_DIM, ACT_DIM)

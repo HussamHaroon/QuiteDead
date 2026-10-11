@@ -225,3 +225,21 @@ def test_parking_lot_scripted_deposits_and_weapon_kills():
     assert kill_seen, "no weapon kills on Parking Lot across seeds"
 
 
+def test_training_grounds_stop_at_quota():
+    """C.1: scripted baseline wins Training Grounds — quota met while alive.
+    The win moment is the FIRST tick where stockpile >= win_stock with any
+    survivor alive (the sim keeps running past a win if unchecked)."""
+    from zombie_sim.core.levels import load_levels
+    lv = load_levels(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                                  "config", "levels.yaml"))[0]
+    cfg = Config(width=lv.map.w, height=lv.map.h, n_survivors=6, n_zombies=lv.n_zombies,
+                 n_supply_outdoor=0, supply_per_building=0.0, seed=11)
+    w = World(cfg, level=lv)
+    win_tick = None
+    while w.counts()[0] > 0 and w.t < 6000:
+        w.step()
+        if w.stockpile >= lv.win_stock:
+            win_tick = w.t
+            break
+    assert win_tick is not None, "Training Grounds not won"
+    assert w.counts()[0] >= 1, "won but nobody alive at the win moment"
