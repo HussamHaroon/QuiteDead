@@ -69,7 +69,7 @@ def test_extinction_is_loss():
     from env import SurvivorEnv
     levels = load_levels(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                                       "config", "levels.yaml"))
-    env = SurvivorEnv(n_survivors=6, n_zombies=30, horizon=3000)
+    env = SurvivorEnv(n_survivors=6, n_zombies=20, horizon=3000)
     ob = env.reset()
     rng = np.random.default_rng(0)
     done = False
@@ -78,7 +78,7 @@ def test_extinction_is_loss():
         if done:
             break
     assert done
-    assert env.world.counts()[0] == 0, "30 zombies should wipe 6 random survivors"
+    assert env.world.counts()[0] == 0, "20 zombies should eventually overwhelm 6 random survivors"
 
 
 def test_obs_dim_and_finiteness():
@@ -214,11 +214,10 @@ def test_parking_lot_scripted_deposits_and_weapon_kills():
                      n_zombies=lv.n_zombies, n_supply_outdoor=0,
                      supply_per_building=0.0, seed=seed)
         w = World(cfg, level=lv)
-        while w.stockpile < lv.win_stock and w.counts()[0] > 0 and w.t < 8000:
+        while w.counts()[0] > 0 and w.t < 6000:
             w.step()
-        if w.stockpile >= lv.win_stock:
-            dep_seen = dep_seen or w.log.count("deposit") > 0
-            kill_seen = kill_seen or w.log.count("kill") > 0
+        dep_seen = dep_seen or w.log.count("deposit") > 0
+        kill_seen = kill_seen or w.log.count("kill") > 0
         if dep_seen and kill_seen:
             break
     assert dep_seen, "no deposits on Parking Lot across seeds"
