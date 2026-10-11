@@ -22,7 +22,7 @@ thirst_rate: 0.080
 hunger_damage: 0.06
 
 fight_hp_threshold: 60.0
-danger_radius: 5.0
+danger_radius: 7.0
 
 # weapons (all looted): unarmed = shove only, bat = quiet melee, gun = loud ranged
 bat_damage: 50.0
@@ -49,18 +49,18 @@ reanimation_enabled: true
 
 zombie_walk: 0.055
 zombie_chase_speed: 0.115
-zombie_vision_range: 6.0
+zombie_vision_range: 9.0
 zombie_vision_fov_deg: 130.0
 zombie_detect_chance: 0.65
-zombie_memory_ticks: 240
+zombie_memory_ticks: 600
 zombie_hp: 100.0
 zombie_damage: 14.0
 zombie_attack_chance: 0.6
 zombie_attack_cooldown: 15
-zombie_hearing_radius: 9.0
+zombie_hearing_radius: 14.0
 
 noise_decay: 0.92
 noise_walk: 1.0
 noise_run: 12.0
 noise_combat: 40.0
-noise_hear_threshold: 6.0
+noise_hear_threshold: 0.5

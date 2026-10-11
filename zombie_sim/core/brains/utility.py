@@ -149,14 +149,29 @@ def think(world, s):
                 return
             s.memory_sup.pop(sid, None)  # unreachable — forget it
 
-    # 5. EXPLORE
+    # 5. EXPLORE: head toward the safe house if far from it (stay close to base
+    #    when nothing to do) — this is more survivor-like than random wandering
     s.state_label = "EXPLORING"
     if s.path is None:
-        for _ in range(8):
-            tx = int(s.x + world.rng.uniform(-14, 14))
-            ty = int(s.y + world.rng.uniform(-14, 14))
-            if m.walkable(tx + 0.5, ty + 0.5) and _goto(s, m, tx + 0.5, ty + 0.5):
-                break
+        if world.safehouse is not None:
+            x0, y0, sw_, sh_ = world.safehouse
+            hx, hy = x0 + sw_ / 2.0, y0 + sh_ / 2.0
+            d_home = math.hypot(hx - s.x, hy - s.y)
+            if d_home > 10:
+                _goto(s, m, hx + world.rng.uniform(-3, 3), hy + world.rng.uniform(-3, 3))
+            else:
+                # near home: explore outward from the safe house
+                for _ in range(8):
+                    tx = hx + world.rng.uniform(-16, 16)
+                    ty = hy + world.rng.uniform(-16, 16)
+                    if m.walkable(tx + 0.5, ty + 0.5) and _goto(s, m, tx + 0.5, ty + 0.5):
+                        break
+        else:
+            for _ in range(8):
+                tx = int(s.x + world.rng.uniform(-14, 14))
+                ty = int(s.y + world.rng.uniform(-14, 14))
+                if m.walkable(tx + 0.5, ty + 0.5) and _goto(s, m, tx + 0.5, ty + 0.5):
+                    break
 
 
 def _goto_safehouse(world, s):

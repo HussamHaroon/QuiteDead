@@ -79,7 +79,20 @@ def think(world, z):
         center_head = math.atan2(cy - z.y, cx - z.x)
         diff = (center_head - z.heading + math.pi) % (2 * math.pi) - math.pi
         z.heading += diff * 0.08
-    z.heading += world.rng.uniform(-0.35, 0.35)
+    # DIRECTIONAL wander: drift toward the last investigation target or the
+    # map center. Pure random walk makes zombies mill about uselessly.
+    if z.target is not None:
+        dx, dy = z.target[0] + 0.5 - z.x, z.target[1] + 0.5 - z.y
+        d = math.hypot(dx, dy)
+        if d > 0.5:
+            z.heading = math.atan2(dy, dx)
+    else:
+        # slow drift toward map center (where most action is)
+        cx, cy = world.game_map.w / 2.0, world.game_map.h / 2.0
+        to_center = math.atan2(cy - z.y, cx - z.x)
+        diff = (to_center - z.heading + math.pi) % (2 * math.pi) - math.pi
+        z.heading += diff * 0.02
+    z.heading += world.rng.uniform(-0.15, 0.15)
     z.vel = (math.cos(z.heading) * cfg.zombie_walk, math.sin(z.heading) * cfg.zombie_walk)
     _separate(world, z)
 

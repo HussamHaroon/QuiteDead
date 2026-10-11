@@ -34,7 +34,7 @@ class Config:
     hunger_damage: float = 0.06           # hp lost per tick at max hunger/thirst
     # threat response
     fight_hp_threshold: float = 60.0      # only stand and fight above this hp
-    danger_radius: float = 5.0            # flee when a zombie is closer than this
+    danger_radius: float = 7.0            # generous flee radius — self-preservation
     # weapons: unarmed survivors CANNOT kill — shove only. Bat = quiet melee
     # weapon (looted). Pistol = ranged, loud, ammo-limited (looted).
     bat_damage: float = 50.0
@@ -56,15 +56,15 @@ class Config:
     # zombie body
     zombie_walk: float = 0.055
     zombie_chase_speed: float = 0.115
-    zombie_vision_range: float = 6.0
+    zombie_vision_range: float = 9.0      # shamblers still see pretty far
     zombie_vision_fov_deg: float = 130.0
     zombie_detect_chance: float = 0.65    # probabilistic detection per tick
-    zombie_memory_ticks: int = 240        # how long a last-known position is kept
+    zombie_memory_ticks: int = 600        # zombies are RELENTLESS — long pursuit
     zombie_hp: float = 100.0
     zombie_damage: float = 14.0
     zombie_attack_chance: float = 0.6
     zombie_attack_cooldown: int = 15
-    zombie_hearing_radius: float = 9.0
+    zombie_hearing_radius: float = 14.0   # zombies hear you from far away
     # infection
     bite_infection_chance: float = 0.65
     incubation_ticks: int = 900           # bite -> turn
@@ -75,7 +75,7 @@ class Config:
     noise_walk: float = 1.0
     noise_run: float = 12.0
     noise_combat: float = 40.0
-    noise_hear_threshold: float = 6.0
+    noise_hear_threshold: float = 0.5     # zombies hear EVERYTHING — even footsteps
 
     @classmethod
     def load(cls, path=None, overrides=None):
