@@ -30,12 +30,12 @@ R_KILL = 1.0      # combat pays, but the MISSION must pay more: a 3-item deposit
 R_BITE = -6.0     # a bite is a near-certain death sentence — the immediate
                   # signal must reflect that or avoidance never wins the tug-of-war
 R_DEATH = -10.0
-R_STEP = -0.005   # 4000 ticks = -20/survivor; mission pays +50 — the loop wins
-R_NEED = -0.02    # hunger/thirst above 70 hurts — go eat
-R_SURVIVE = 4.0
+R_STEP = -0.002   # minimal existence cost
+R_NEED = -0.005   # mild discomfort signal, not crippling
+R_SURVIVE = 10.0  # staying alive pays
 R_DEPOSIT = 3.0   # per item deposited in the safe house ("deposit" event, n items)
 R_GUN = 1.0       # bonus for picking up a gun (loot event with kind == "gun")
-R_QUOTA = 6.0     # per living survivor when the level's stockpile quota is met
+R_QUOTA = 20.0    # WINNING THE MISSION is the big prize
 R_SHAPE = 0.05    # potential-based shaping coefficient (Ng et al. 1999: F = g*phi' - phi
                   # preserves the optimal policy while giving a dense gradient)
 R_AVOID = 0.05    # threat-avoidance shaping: equal weight to objective pull, so
