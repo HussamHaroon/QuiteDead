@@ -34,10 +34,17 @@ def move_agents(world):
         if vx == 0.0 and vy == 0.0:
             continue
         old_x, old_y = a.x, a.y
-        if m.walkable(a.x + vx, a.y):
-            a.x += vx
-        if m.walkable(a.x, a.y + vy):
-            a.y += vy
+        # zombies cannot enter the safe house — it's a sanctuary
+        if a.kind == "zombie" and world.safehouse is not None:
+            x0, y0, sw, sh = world.safehouse
+            nx, ny = a.x + vx, a.y + vy
+            if x0 <= nx < x0 + sw and y0 <= ny < y0 + sh:
+                vx, vy = 0.0, 0.0
+        if vx != 0.0 or vy != 0.0:
+            if m.walkable(a.x + vx, a.y):
+                a.x += vx
+            if m.walkable(a.x, a.y + vy):
+                a.y += vy
         moved = math.hypot(a.x - old_x, a.y - old_y)
         if moved > 1e-4:
             a.heading = math.atan2(a.y - old_y, a.x - old_x)
