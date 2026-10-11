@@ -24,10 +24,10 @@ DIRS4 = [(0, -1), (1, 0), (0, 1), (-1, 0)]
 
 R_BITE = 3.0
 R_KILL = 6.0
-R_STEP = -0.002
-R_WIN = 5.0                     # all survivors dead
-R_LOSE = -2.0                   # per survivor alive at the horizon
-R_SHAPE = 0.02                  # approach the nearest visible/remembered survivor
+R_STEP = -0.05                   # standing still is expensive — hunt or lose
+R_WIN = 5.0
+R_LOSE = -3.0
+R_SHAPE = 0.05                   # strong approach gradient toward prey
 PBRS_GAMMA = 0.999
 
 

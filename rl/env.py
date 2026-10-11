@@ -30,15 +30,15 @@ R_KILL = 1.0      # combat pays, but the MISSION must pay more: a 3-item deposit
 R_BITE = -6.0     # a bite is a near-certain death sentence — the immediate
                   # signal must reflect that or avoidance never wins the tug-of-war
 R_DEATH = -10.0
-R_STEP = -0.002
-R_NEED = -0.004
+R_STEP = -0.05    # standing still is expensive — move or die
+R_NEED = -0.02    # hunger/thirst above 70 hurts — go eat
 R_SURVIVE = 4.0
 R_DEPOSIT = 3.0   # per item deposited in the safe house ("deposit" event, n items)
 R_GUN = 1.0       # bonus for picking up a gun (loot event with kind == "gun")
 R_QUOTA = 6.0     # per living survivor when the level's stockpile quota is met
-R_SHAPE = 0.02    # potential-based shaping coefficient (Ng et al. 1999: F = g*phi' - phi
+R_SHAPE = 0.05    # potential-based shaping coefficient (Ng et al. 1999: F = g*phi' - phi
                   # preserves the optimal policy while giving a dense gradient)
-R_AVOID = 0.02    # threat-avoidance shaping: equal weight to objective pull, so
+R_AVOID = 0.05    # threat-avoidance shaping: equal weight to objective pull, so
                   # "walk through the zombie to the supply" is never net-positive
 PBRS_GAMMA = 0.999  # must match the PPO discount
 
