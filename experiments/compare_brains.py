@@ -60,6 +60,8 @@ def run_episode(brain, level, seed, survivors, horizon, surv_policy=None):
             quota_met_tick = t
         if w.counts()[0] == 0:
             break
+        if quota_met_tick is not None:
+            break  # terminal win: stop at the moment the camp is supplied
     alive, _, _ = w.counts()
     return {
         "survival_rate": alive / cfg.n_survivors,
