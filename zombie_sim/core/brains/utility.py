@@ -83,9 +83,8 @@ def think(world, s):
     s.fear = max(0.0, s.fear - 0.004)
     s.fleeing = False
 
-    # 1. THREAT: shoot (armed) > flee > bat-fight (armed with bat, healthy,
-    #    point-blank) — bare hands NEVER stand and fight; the cornered shove
-    #    escape is resolved in move_agents
+    # 1. THREAT: shoot (armed) > flee toward safe house > bat-fight (armed,
+    #    healthy, point-blank) — bare hands NEVER stand and fight
     if threats:
         nearest = min(threats, key=lambda z: (z.x - s.x) ** 2 + (z.y - s.y) ** 2)
         d = math.hypot(nearest.x - s.x, nearest.y - s.y)
