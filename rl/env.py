@@ -30,7 +30,7 @@ R_KILL = 1.0      # combat pays, but the MISSION must pay more: a 3-item deposit
 R_BITE = -6.0     # a bite is a near-certain death sentence — the immediate
                   # signal must reflect that or avoidance never wins the tug-of-war
 R_DEATH = -10.0
-R_STEP = -0.05    # standing still is expensive — move or die
+R_STEP = -0.005   # 4000 ticks = -20/survivor; mission pays +50 — the loop wins
 R_NEED = -0.02    # hunger/thirst above 70 hurts — go eat
 R_SURVIVE = 4.0
 R_DEPOSIT = 3.0   # per item deposited in the safe house ("deposit" event, n items)
