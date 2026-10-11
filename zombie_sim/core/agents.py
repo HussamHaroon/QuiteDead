@@ -52,18 +52,19 @@ class Survivor(Agent):
 
 class Zombie(Agent):
     __slots__ = ("state", "target", "last_known", "last_seen", "attack_cd", "hp",
-                 "inv_since", "rl")
+                 "inv_since", "rl", "_patrol_set")
 
     def __init__(self, aid, x, y, hp=100.0):
         super().__init__(aid, "zombie", x, y)
         self.hp = hp
-        self.rl = False  # True when an RL policy drives this zombie instead of the FSM
+        self.rl = False
         self.state = "wander"
         self.target = None
         self.last_known = None
         self.last_seen = -10**9
         self.attack_cd = 0
         self.inv_since = 0
+        self._patrol_set = 0
 
 
 @dataclass

@@ -148,22 +148,27 @@ def think(world, s):
                 return
             s.memory_sup.pop(sid, None)  # unreachable — forget it
 
-    # 5. EXPLORE: head toward the safe house if far from it (stay close to base
-    #    when nothing to do) — this is more survivor-like than random wandering
-    s.state_label = "EXPLORING"
+    # 5. EXPLORE: venture OUT from the safe house in expanding arcs to find
+    #    supplies. Survivors never sit still — they scout for the team.
+    s.state_label = "SCOUTING"
     if s.path is None:
         if world.safehouse is not None:
             x0, y0, sw_, sh_ = world.safehouse
             hx, hy = x0 + sw_ / 2.0, y0 + sh_ / 2.0
-            d_home = math.hypot(hx - s.x, hy - s.y)
-            if d_home > 10:
-                _goto(s, m, hx + world.rng.uniform(-3, 3), hy + world.rng.uniform(-3, 3))
+            # each survivor scouts in a different direction (indexed by id)
+            angle = (s.id * 2.399) % (2 * math.pi)  # golden angle spread
+            for radius in (12, 18, 24, 10, 30):
+                tx = hx + math.cos(angle) * radius
+                ty = hy + math.sin(angle) * radius
+                if 1 < tx < m.w - 1 and 1 < ty < m.h - 1 \
+                        and m.walkable(tx, ty) and _goto(s, m, tx, ty):
+                    break
             else:
-                # near home: explore outward from the safe house
-                for _ in range(8):
-                    tx = hx + world.rng.uniform(-16, 16)
-                    ty = hy + world.rng.uniform(-16, 16)
-                    if m.walkable(tx + 0.5, ty + 0.5) and _goto(s, m, tx + 0.5, ty + 0.5):
+                # fallback: random point
+                for _ in range(6):
+                    tx = world.rng.uniform(2, m.w - 2)
+                    ty = world.rng.uniform(2, m.h - 2)
+                    if m.walkable(tx, ty) and _goto(s, m, tx, ty):
                         break
         else:
             for _ in range(8):
