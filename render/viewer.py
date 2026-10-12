@@ -141,6 +141,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
 
     world = _make_world(cfg, level=level)
     bank = load_bank(level.theme if level is not None else None)
+    sfx = SoundManager(enabled=not screenshot)
     background = _prerender_map(world, getattr(bank, "map_tiles", None))
     rot_cache = {}
     selected = next((s for s in world.survivors if s.alive), None)
@@ -225,6 +226,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
         # gunshot shockwaves: every shot is loud — make the noise mechanic visible
         # + persistent history: death stains + death animations (never despawn)
         for e in world.log.events[scanned_events:]:
+            sfx.play(e["type"])
             if e["type"] == "shot":
                 item_flash.append((e["x"], e["y"], pygame.time.get_ticks()))
                 # muzzle flash + bullet tracer toward the target

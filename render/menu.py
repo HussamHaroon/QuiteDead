@@ -5,6 +5,11 @@ import sys
 
 import pygame
 
+try:
+    from render.sound import SoundManager
+except ImportError:
+    from sound import SoundManager
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 W, H = 800, 600
@@ -90,6 +95,7 @@ def run_menu():
     screen = pygame.display.set_mode((W, H))
     pygame.display.set_caption("QuiteDead")
     clock = pygame.time.Clock()
+    sfx = SoundManager()
 
     font_big = pygame.font.SysFont("consolas", 52, bold=True)
     font = pygame.font.SysFont("consolas", 22)
@@ -121,11 +127,14 @@ def run_menu():
                 done = True
             elif ev.type == pygame.KEYDOWN:
                 if not in_settings:
-                    if ev.key == pygame.K_UP:
-                        selected = (selected - 1) % len(menu_items)
-                    elif ev.key == pygame.K_DOWN:
-                        selected = (selected + 1) % len(menu_items)
+                    if ev.key in (pygame.K_UP, pygame.K_DOWN):
+                        sfx.play_menu("click")
+                        if ev.key == pygame.K_UP:
+                            selected = (selected - 1) % len(menu_items)
+                        else:
+                            selected = (selected + 1) % len(menu_items)
                     elif ev.key in (pygame.K_RETURN, pygame.K_SPACE):
+                        sfx.play_menu("select")
                         if menu_items[selected] == "Quit":
                             action = "quit"; done = True
                         elif menu_items[selected] == "Settings":
