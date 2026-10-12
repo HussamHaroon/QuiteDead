@@ -30,9 +30,11 @@ ASSET_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file_
 try:
     from . import sprites as sprites_mod
     from .sprites import load_bank
+    from .sound import SoundManager
 except ImportError:  # run as a plain script
     import sprites as sprites_mod
     from sprites import load_bank
+    from sound import SoundManager
 
 
 def _is_night(t):
