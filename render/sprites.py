@@ -265,7 +265,9 @@ class KenneySprites:
             cache[(id(img), key)] = s
         return s
 
-    def survivor(self, heading, moving, frame, skin=0, cache=None):
+    def survivor(self, heading, moving, frame, skin=0, cache=None, gun=False):
+        # gun accepted for interface parity with TLSSprites; the Kenney pack
+        # carries no weapon frames, so the flag is ignored.
         return self._rotated(cache, self.skins[skin % len(self.skins)], heading)
 
     @staticmethod
