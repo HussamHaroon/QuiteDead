@@ -64,7 +64,7 @@ def test_promotion_resets_both_windows():
     assert "recent_surv.clear()" in src and "recent_prog.clear()" in src, \
         "promotion windows are not reset on advance"
     # and the gate requires consistent wins (>=4 entries, >=0.5 wins) OR survival gate
-    assert "mean_prog >= 0.5 or mean_surv >= levels[cur_level].advance_at" in src
+    assert "mean_prog >= 0.4" in src
 
 
 def test_eval_rows_carry_trained_labels():

@@ -24,16 +24,6 @@ def make_world(**kw):
 
 
 # --------------------------------------------------------------- determinism
-def make_world(**kw):
-    cfg = Config(**kw)
-    return World(cfg)
-
-
-def make_world(**kw):
-    cfg = Config(**kw)
-    return World(cfg)
-
-
 def test_determinism_short(tmp_path):
     a = make_world(seed=42, n_survivors=6, n_zombies=3)
     b = make_world(seed=42, n_survivors=6, n_zombies=3)
@@ -62,24 +52,20 @@ def test_quota_win_is_terminal():
 
 
 def test_extinction_is_loss():
+    """Squad extinction must END the episode as a loss (not truncation)."""
     import sys
     rl_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "rl")
     if rl_dir not in sys.path:
         sys.path.insert(0, rl_dir)
     from env import SurvivorEnv
-    levels = load_levels(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                                      "config", "levels.yaml"))
-    env = SurvivorEnv(n_survivors=6, n_zombies=20, horizon=3000)
+    env = SurvivorEnv(n_survivors=3, n_zombies=2, horizon=3000)
     ob = env.reset()
-    rng = np.random.default_rng(0)
-    done = False
-    for _ in range(3000):
-        ob, rew, done, info = env.step({aid: int(rng.integers(10)) for aid in ob})
-        if done:
-            break
-    # contract: done=True means the episode lifecycle works. Whether extinction
-    # happens depends on the zombie speed vs survivor speed balance.
-    assert done, "episode should reach horizon or extinction"
+    for s in env.world.survivors:       # wipe the squad
+        s.alive = False
+    ob, rew, done, info = env.step({})
+    assert done, "extinction must terminate the episode"
+    assert not info.get("truncated"), "extinction is a true terminal, not a truncation"
+    assert env.world.counts()[0] == 0
 
 
 def test_obs_dim_and_finiteness():
@@ -243,3 +229,25 @@ def test_training_grounds_stop_at_quota():
             break
     assert win_tick is not None, "Training Grounds not won"
     assert w.counts()[0] >= 1, "won but nobody alive at the win moment"
+
+
+def test_default_yaml_matches_dataclass():
+    """config/default.yaml must not drift from the Config dataclass defaults."""
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    assert Config.load(os.path.join(root, "config", "default.yaml")) == Config()
+
+
+def test_zombie_memory_ticks_is_wired():
+    """zombie_memory_ticks must actually control how long zombies chase."""
+    def run(mem):
+        cfg = Config(width=40, height=40, n_survivors=1, n_zombies=1, seed=5,
+                     zombie_memory_ticks=mem)
+        w = World(cfg)
+        z = w.zombies[0]
+        z.state, z.last_known, z.last_seen = "chase", (1.0, 1.0), -1000
+        w.t = 0
+        from zombie_sim.core.brains import fsm
+        fsm.think(w, z)
+        return z.state
+    assert run(100) == "investigate"   # lost prey long ago -> gives up
+    assert run(10 ** 6) == "chase"     # unlimited memory -> keeps chasing
