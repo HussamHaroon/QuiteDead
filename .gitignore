@@ -6,6 +6,7 @@ token*.txt
 
 # ---- docs policy: nothing documented gets committed for now ----
 *.md
+!README.md
 *.pdf
 *.docx
 *.doc
