@@ -6,6 +6,15 @@ limited senses (vision cones, hearing, memory). Survivors loot supplies and
 haul them back to the safe house; zombies hunt, bite, and turn their victims.
 The RL question: can learned policies match or beat the hand-written brains?
 
+**Authors:** Muhammad Dawood and Hussam Haroon (ABIS sessional project, 2026).
+
+![Gameplay](assets/screenshots/play.png)
+![Win screen](assets/screenshots/win.png)
+
+**Status at a glance:** scripted survivors win the easy levels, a hierarchical PPO brain matches or beats
+them (including on an unseen level), flat PPO failed, and the original *Suburb Blocks* level is still
+unsolved by every brain. Deterministic (same seed, same run); 32 automated tests.
+
 > Asset credit: zombie/survivor/item/tile art in the local
 > `assets/thelazystone_postapoc/` pack is by **TheLazyStone**
 > (https://thelazystone.itch.io/post-apocalypse-pixel-art-asset-pack) — used
@@ -50,7 +59,7 @@ python experiments/outbreak.py --level 2 --survivors 20 --seeds 10
 ## Tests (Definition of Done)
 
 ```bash
-python -m pytest tests/ -q     # 26 checks: determinism, contracts, stats, config
+python -m pytest tests/ -q     # 32 checks: determinism, contracts, stats, config
 ```
 
 ## Controls & rules
@@ -65,7 +74,11 @@ remember where you were — bites infect, and the dead rise.
 Scripted survivors win 100% of Training Grounds, 60% of Parking Lot and 0% of
 Suburb Blocks; random never wins. Flat-action PPO never learned the mission (0%), but the
 **hierarchical PPO** policy (`rl_hier`) wins 100% of the two levels it trained on and 75% of an
-unseen Parking Lot. Details, CIs and caveats: `REPORT.md`.
+unseen Parking Lot. **Suburb Blocks (original) is still unsolved**: no brain wins it. It plays like a siege (zombies reach the door in
+about 100 ticks and unarmed survivors cannot kill them); the learned brain stocks about 8.4 of 20 items there.
+The easier *Suburb Blocks (Easy)* variant was added by us (scripted 0.30, learned 0.85).
+Details, CIs and caveats are in the course report PDF (PDFs and extra `.md` files are git-ignored, so the
+report is not in this repo).
 
 ## Survivor brains (`brain_survivors`)
 
@@ -86,7 +99,7 @@ more fragile than the hand-tuned ladder on these maps (see `zombie_sim/core/brai
 *Suburb Blocks (Easy)* (3 zombies, quota 12) between the original levels, for a gentler curriculum:
 `python -m rl.train --levels config/levels_ramp.yaml`. `python -m rl.bc` clones the scripted ladder into the
 PPO network. Honest status: PPO from scratch, with the reward fix, on the ramp, and from a behaviour-cloned
-start all fail to win (logs in `results/ppo_rewardfix/` and `results/ppo_ramp_bc/`); see report Sec. 4.3b.
+start all fail to win (logs were kept locally under `results/`); see report Sec. 4.3b (course PDF, not in this repo).
 
 ## Reinforcement learning that works: hierarchical PPO
 Flat PPO (one move per tick) never learned the mission. `rl/htrain.py` trains a *hierarchical* policy instead:
