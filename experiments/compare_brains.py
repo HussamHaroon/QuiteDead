@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from zombie_sim.core.config import Config          # noqa: E402
 from zombie_sim.core.levels import load_levels     # noqa: E402
 from zombie_sim.core.sim import World              # noqa: E402
+from analysis.stats import wilson_ci, mean_ci_t, mann_whitney_u, fisher_exact  # noqa: E402
 
 
 def run_episode(brain, level, seed, survivors, horizon, surv_policy=None):
@@ -31,8 +32,6 @@ def run_episode(brain, level, seed, survivors, horizon, surv_policy=None):
     w = World(cfg, level=level)
 
     if brain == "rl":
-        import torch
-        from env import OBS_DIM, ACT_DIM
         assert surv_policy is not None
     if brain == "random":
         import random as _rnd_mod
@@ -94,7 +93,7 @@ def main():
     level = load_levels(args.levels)[args.level]
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
 
-    all_rows = []
+    all_rows, raw_rows, per_brain = [], [], {}
     for spec in brain_specs:
         surv_policy = None
         if spec.startswith("rl:"):
@@ -119,28 +118,48 @@ def main():
                   flush=True)
         srs = [r["survival_rate"] for r in results]
         qrs = [r["quota"] for r in results]
-        ci = 1.96 * statistics.pstdev(srs) / max(1, len(srs)) ** 0.5 if len(srs) > 1 else 0.0
-        qci = 1.96 * statistics.pstdev(qrs) / max(1, len(qrs)) ** 0.5 if len(qrs) > 1 else 0.0
+        sm, sci = mean_ci_t(srs)
+        qlo, qhi = wilson_ci(sum(qrs), len(qrs))
+        per_brain[spec] = (srs, qrs)
         all_rows.append({"brain": spec,
-                         "survival_mean": round(statistics.mean(srs), 3),
-                         "survival_ci95": round(ci, 3),
-                         "quota_rate": round(statistics.mean(qrs), 3),
-                         "quota_ci95": round(qci, 3),
+                         "survival_mean": round(sm, 3),
+                         "survival_ci95": round(sci, 3),
+                         "quota_rate": round(sum(qrs) / len(qrs), 3),
+                         "quota_lo": round(qlo, 3), "quota_hi": round(qhi, 3),
                          "episodes": len(results)})
+        for seed, r in enumerate(results):
+            raw_rows.append({"level": level.name, "brain": spec, "seed": seed, **r})
 
+    fields = ["brain", "survival_mean", "survival_ci95", "quota_rate", "quota_lo",
+              "quota_hi", "episodes"]
     write_header = not os.path.exists(args.out)
     with open(args.out, "a", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=["brain", "survival_mean", "survival_ci95",
-                                          "quota_rate", "quota_ci95", "episodes"])
+        w = csv.DictWriter(f, fieldnames=["level"] + fields)
         if write_header:
             w.writeheader()
-        w.writerows(all_rows)
+        w.writerows([{"level": level.name, **r} for r in all_rows])
+    raw_path = os.path.splitext(args.out)[0] + "_episodes.csv"
+    with open(raw_path, "a", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=list(raw_rows[0]))
+        if f.tell() == 0:
+            w.writeheader()
+        w.writerows(raw_rows)
 
-    print(f"\n=== {args.seeds} seeds/brain on [{level.name}] ===")
+    print(f"\n=== {args.seeds} seeds/brain on [{level.name}]  (quota: Wilson 95% CI; "
+          f"survival: t 95% CI) ===")
     for r in all_rows:
-        print(f"  {r['brain']:<28} survival {r['survival_mean']:.2f} ± {r['survival_ci95']:.2f}"
-              f"  quota-rate {r['quota_rate']:.2f} ± {r['quota_ci95']:.2f}")
-    print(f"table -> {args.out}")
+        print(f"  {r['brain']:<34} quota-rate {r['quota_rate']:.2f} "
+              f"[{r['quota_lo']:.2f}, {r['quota_hi']:.2f}]  "
+              f"survival {r['survival_mean']:.2f} +- {r['survival_ci95']:.2f}")
+    base = brain_specs[0]
+    for spec in brain_specs[1:]:
+        ks, ns = sum(per_brain[base][1]), len(per_brain[base][1])
+        kb, nb = sum(per_brain[spec][1]), len(per_brain[spec][1])
+        pf = fisher_exact(ks, ns, kb, nb)
+        _, pu = mann_whitney_u(per_brain[base][0], per_brain[spec][0])
+        print(f"  {base} vs {spec}: Fisher(quota) p={pf:.4f} | "
+              f"Mann-Whitney(survival) p={pu:.4f}")
+    print(f"table -> {args.out} | per-episode -> {raw_path}")
 
 
 if __name__ == "__main__":

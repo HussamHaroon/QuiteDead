@@ -38,8 +38,6 @@ def series(events, n_survivors, n_zombies):
     """Reconstruct per-event-tick S / E(infected) / Z counts from the log."""
     dead = set()
     infected = set()
-    zombie_ids = {f"z{i}" for i in range(n_zombies)} if False else set()
-    # zombie ids in the log are ints at spawn/turn time
     out = []  # (tick, S, E, Z)
     si, zi = n_survivors, n_zombies
     ei = 0
@@ -51,7 +49,7 @@ def series(events, n_survivors, n_zombies):
         if et == "bite":
             infected.add(e["who"])
         elif et == "turn":
-            si -= 0  # survivor already counted dead via death event
+            # the dying survivor was already removed by its death event
             zi += 1
         elif et == "death":
             if e["kind"] == "survivor":
@@ -108,7 +106,15 @@ def main():
     attack_rate = len(unique_bitten) / n_survivors if n_survivors else 0.0
     per_zombie = Counter(e["zombie"] for e in bites)
     actives = [z for z, n in per_zombie.items() if n > 0]
-    r0 = (sum(per_zombie[z] for z in actives) / len(actives)) if actives else 0.0
+    bites_per_active = (sum(per_zombie[z] for z in actives) / len(actives)) if actives else 0.0
+    # Reproduction number: secondary infections per zombie, averaged over ALL
+    # zombies that ever existed (initial + turned + reinforcements), including
+    # those that infected nobody. "Bites per active zombie" conditions on
+    # success and therefore overstates it; both are reported.
+    n_turns = sum(1 for e in events if e["type"] == "turn")
+    n_reinf = sum(1 for e in events if e["type"] == "reinforce")
+    zombies_ever = n_zombies + n_turns + n_reinf
+    r_eff = len(bites) / zombies_ever if zombies_ever else 0.0
 
     deaths_by_cause = Counter(e.get("cause", "?") for e in events
                               if e["type"] == "death")
@@ -117,7 +123,10 @@ def main():
         "initial_zombies": n_zombies,
         "unique_bitten": len(unique_bitten),
         "attack_rate": round(attack_rate, 4),
-        "R0_bites_per_active_zombie": round(r0, 3),
+        "infections": len(bites),
+        "zombies_ever": zombies_ever,
+        "R_eff_infections_per_zombie": round(r_eff, 3),
+        "bites_per_active_zombie": round(bites_per_active, 3),
         "deaths_by_cause": dict(deaths_by_cause),
         "ticks": last_t,
     }

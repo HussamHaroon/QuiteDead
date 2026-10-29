@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 from zombie_sim.core.config import Config  # noqa: E402
 from zombie_sim.core.levels import load_levels  # noqa: E402
 from zombie_sim.core.sim import World  # noqa: E402
+from analysis.stats import mean_ci_t  # noqa: E402
 
 
 def main():
@@ -70,22 +71,22 @@ def main():
             w.writerow([args.param, r["param"], r["seed"], r["survivors"],
                         r["quota"], r["bites"], r["kills"], r["ticks"]])
 
-    # heatmap: mean survivors per value
-    per_val = {}
-    for r in rows:
-        per_val.setdefault(r["param"], []).append(r["survivors"])
-    vals = sorted(per_val)
-    means = [sum(per_val[v]) / len(per_val[v]) for v in vals]
-
-    plt.figure(figsize=(6, 4))
-    plt.bar([str(v) for v in vals], means, color="#b0483f")
-    plt.xlabel(args.param)
-    plt.ylabel(f"mean survivors alive @ {args.ticks} ticks")
-    plt.title(f"Sweep: {args.param}")
-    plt.tight_layout()
+    # figure: mean +- 95% t-CI of survivors alive and of items deposited
+    vals = sorted({r["param"] for r in rows})
+    fig, axes = plt.subplots(1, 2, figsize=(8.6, 3.6))
+    for ax, key, label, col in ((axes[0], "survivors", f"survivors alive @ end", "#1d7795"),
+                                (axes[1], "quota", "items deposited (stockpile)", "#b0483f")):
+        ms, hs = [], []
+        for v in vals:
+            m, h = mean_ci_t([r[key] for r in rows if r["param"] == v])
+            ms.append(m); hs.append(h)
+        ax.bar([str(v) for v in vals], ms, yerr=hs, capsize=4, color=col)
+        ax.set_xlabel(args.param); ax.set_ylabel(label)
+    fig.suptitle(f"Sweep of {args.param} ({args.seeds} seeds, mean +- 95% CI)")
+    fig.tight_layout()
     png = os.path.join(args.out, f"sweep_{args.param}.png")
-    plt.savefig(png, dpi=130)
-    plt.close()
+    fig.savefig(png, dpi=150)
+    plt.close(fig)
     print(f"outputs -> {csv_path} and {png}")
 
 
