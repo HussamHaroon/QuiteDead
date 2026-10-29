@@ -32,7 +32,7 @@ R_BITE = -6.0     # a bite is a near-certain death sentence — the immediate
 R_DEATH = -10.0
 R_STEP = -0.002   # minimal existence cost
 R_NEED = -0.005   # mild discomfort signal, not crippling
-R_SURVIVE = 10.0  # staying alive pays
+R_SURVIVE = 0.0   # was 10.0: a flat survive bonus made "hide until the horizon" an easy local optimum that outbid the mission
 R_DEPOSIT = 3.0   # per item deposited in the safe house ("deposit" event, n items)
 R_GUN = 1.0       # bonus for picking up a gun (loot event with kind == "gun")
 R_QUOTA = 20.0    # WINNING THE MISSION is the big prize
@@ -114,9 +114,9 @@ def update_senses(world):
                 s.memory_sup[sid] = (sup.x, sup.y)
         for sid in [k for k, (_, _, tk) in s.memory_z.items() if world.t - tk > 900]:
             del s.memory_z[sid]
-        for sid in [k for k, xy in s.memory_sup.items()
-                    if sid in world.supplies and world.supplies[sid].taken]:
-            del s.memory_sup[sid]
+        for k in [k for k in s.memory_sup
+                  if k in world.supplies and world.supplies[k].taken]:
+            del s.memory_sup[k]   # (bug fix: this used a stale loop variable, so RL agents never forgot taken supplies)
 
 
 def obs_for(world, s):
@@ -249,10 +249,10 @@ class SurvivorEnv:
             if lvl.reanimation_enabled is not None:
                 overrides["reanimation_enabled"] = lvl.reanimation_enabled
         cfg = Config(**{**self.base_cfg.to_dict(), **overrides})
-        if lvl is None or True:
-            jitter = 0.9 + 0.2 * ((seed * 2654435761) % 1000 / 1000.0)
-            cfg.thirst_rate = round(cfg.thirst_rate * jitter, 5)
-            cfg.hunger_rate = round(cfg.hunger_rate * jitter, 5)
+        # domain randomisation: +-10% on the needs decay rates, every episode
+        jitter = 0.9 + 0.2 * ((seed * 2654435761) % 1000 / 1000.0)
+        cfg.thirst_rate = round(cfg.thirst_rate * jitter, 5)
+        cfg.hunger_rate = round(cfg.hunger_rate * jitter, 5)
         self.world = World(cfg, level=lvl)
         # spatial hashes start empty (World.step rebuilds them, but the first
         # step's shaping would otherwise read the pre-reset state as empty)
@@ -268,11 +268,14 @@ class SurvivorEnv:
         return {s.id: obs_for(self.world, s)
                 for s in self.world.survivors if s.alive}
 
-    def step(self, actions):
-        w = self.world
+    def _apply(self, w, actions):
         for s in w.survivors:
             if s.alive:
                 apply_action(w, s, int(actions.get(s.id, 0)))
+
+    def step(self, actions):
+        w = self.world
+        self._apply(w, actions)
         auto_consume(w)
 
         log_i0 = len(w.log.events)

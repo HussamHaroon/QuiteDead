@@ -228,7 +228,7 @@ def main():
                 # advance on CONSISTENT wins (half the recent episodes end with
                 # the quota met) or the authored survival gate — near-misses
                 # that die later no longer skip the education
-                if mean_prog >= 0.5 or mean_surv >= levels[cur_level].advance_at:
+                if mean_prog >= 0.4:  # quota wins only: survival alone let hiders advance
                     cur_level += 1
                     recent_surv.clear()   # keep the deque (a plain-list rebind
                                           # would silently unbound the window)
@@ -268,7 +268,7 @@ def main():
             for lvl in levels[1:][:max(0, args.eval_eps)]:
                 eenv = SurvivorEnv(base_seed=777 + lvl.idx, n_survivors=args.survivors,
                                    n_zombies=lvl.n_zombies, size=lvl.map.w,
-                                   horizon=1500, level=lvl)
+                                   horizon=4000, level=lvl)
                 eenv.reset()
                 done = False
                 guard = 0

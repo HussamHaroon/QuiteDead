@@ -1,0 +1,78 @@
+# QuiteDead RAMP curriculum: Training Grounds -> Warm-up Lot -> Parking Lot -> Suburb Blocks (Easy).
+# Same maps as levels.yaml, but with a gentler difficulty ramp (fewer zombies / lower quota).
+- name: "Training Grounds"
+  size: 32
+  n_zombies: 1
+  advance_at: 0.60
+  bats: [[25, 14], [7, 5]]
+  win_stock: 8
+  reanimation_enabled: false
+  roads_x: [8, 24]
+  roads_y: [16]
+  buildings:
+    - [3, 3, 8, 6, "S"]
+  safehouse: [21, 12, 8, 7]
+  food: [[23, 14], [25, 16], [27, 14], [24, 17], [6, 5], [8, 6], [9, 4]]
+  water: [[22, 16], [26, 17], [28, 13], [4, 17], [6, 18], [28, 20]]
+  meds: [[24, 13], [5, 6]]
+  guns: [[4, 4], [26, 13]]
+  ammo: [[5, 4], [27, 16], [9, 7]]
+  survivor_spawns: [[23, 15], [24, 15], [25, 15], [23, 16], [24, 16], [25, 16], [23, 17], [24, 17]]
+  zombie_spawns: [[3, 28], [28, 28]]
+  props:
+    - ["Objects/Vehicles/Normal/Car_1/Car_1_Blue.png", 14, 18]
+    - ["Objects/Vehicles/Normal/Car_1/Car_1_Green.png", 18, 18]
+    - ["Objects/Traffic-cone.png", 20, 14]
+  scatter:
+    - {sprite: "Objects/Nature/Green/Grass_2_Green.png", n: 35, on: GRASS}
+    - {sprite: "Objects/Nature/Flowers_Mashrooms_Other-nature-stuff/Flower_1_yellow.png", n: 12, on: GRASS}
+
+# QuiteDead campaign — 5 authored levels, escalating difficulty.
+# Curriculum: train on a level until mean survival >= advance_at, then move on.
+# 'scatter' rules sprinkle decorative props deterministically (seeded per level).
+
+- name: "Warm-up Lot"
+  size: 40
+  n_zombies: 3
+  advance_at: 0.70
+  bats: [[5, 4], [33, 34]]
+  safehouse: [2, 2, 8, 5]        # top-left building, interior x3-8 / y3-5
+  win_stock: 8
+  roads_x: [7, 32]
+  roads_y: [7, 32]
+  plazas: [[10, 10, 20, 20]]
+  buildings:
+    - [2, 2, 8, 5, "S"]
+    - [30, 2, 8, 5, "S"]
+    - [2, 33, 8, 5, "N"]
+    - [30, 33, 8, 5, "N"]
+  food: [[4, 4], [34, 4], [5, 35], [34, 35], [11, 15], [23, 18], [15, 27], [27, 22], [6, 20], [33, 20]]
+  meds: [[4, 5], [35, 34], [8, 8], [31, 31]]
+  water: [[13, 13], [20, 16], [16, 24], [24, 20], [26, 13], [13, 26], [7, 20], [32, 20], [20, 7], [20, 32], [12, 22], [24, 15], [18, 20], [26, 20], [4, 15], [35, 15], [4, 27], [35, 27]]
+  guns: [[33, 35], [6, 35], [12, 12]]       # two inside other buildings, one on the plaza
+  ammo: [[7, 5], [35, 4], [5, 34], [14, 20], [26, 25]]
+  survivor_spawns: [[19, 20], [20, 20], [18, 21], [21, 21], [19, 22], [20, 22], [17, 20], [22, 20]]
+  zombie_spawns: [[20, 3], [20, 36], [2, 20], [37, 20], [12, 3], [27, 36], [12, 36], [27, 3]]
+  props:
+    - ["Objects/Vehicles/Normal/Car_1/Car_1_Blue.png", 12, 13]
+    - ["Objects/Vehicles/Normal/Car_1/Car_1_Green.png", 16, 13]
+    - ["Objects/Vehicles/Normal/Car_1/Car_1_Orange.png", 20, 13]
+    - ["Objects/Vehicles/Normal/Car_1/Car_1_Gray.png", 24, 13]
+    - ["Objects/Vehicles/Normal/Car_3_Van/Car_3_Blue_Van.png", 27, 13]
+    - ["Objects/Vehicles/Normal/Car_7_Truck/Car_7_Red_Truck.png", 12, 26]
+    - ["Objects/Vehicles/Normal/Car_3_Van/Car_3_Light-Green_Van.png", 16, 26]
+    - ["Objects/Vehicles/Normal/Car_1/Car_1_Green.png", 20, 26]
+    - ["Objects/Vehicles/Normal/Car_8_Bus/Car_8_Yellow_Bus.png", 25, 26]
+    - ["Objects/Garbage-Bin_1.png", 9, 9]
+    - ["Objects/Garbage-Bin_2.png", 30, 30]
+    - ["Objects/Hydrant_1_red.png", 8, 20]
+    - ["Objects/Shopping-cart.png", 22, 18]
+  scatter:
+    - {sprite: "Objects/Traffic-cone.png", n: 8, on: ROAD}
+    - {sprite: "Objects/Trash-bag_1.png", n: 6, on: ROAD}
+    - {sprite: "Objects/Nature/Green/Grass_2_Green.png", n: 40, on: GRASS}
+    - {sprite: "Objects/Nature/Green/Grass_4_Green.png", n: 30, on: GRASS}
+    - {sprite: "Objects/Nature/Flowers_Mashrooms_Other-nature-stuff/Flower_1_yellow.png", n: 15, on: GRASS}
+    - {sprite: "Objects/Nature/Green/Bush_1_Green.png", n: 10, on: GRASS}
+
+
