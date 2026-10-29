@@ -90,7 +90,7 @@ def _button(text, pressed=False, font=None):
     return img
 
 
-def run_menu():
+def run_menu(prev=None):
     pygame.init()
     screen = pygame.display.set_mode((W, H))
     pygame.display.set_caption("QuiteDead")
@@ -103,16 +103,22 @@ def run_menu():
 
     bg = _load_menu_bg(W, H)
 
-    levels = _load_levels()
+    prev = prev or {}
+    LEVEL_FILES = ["config/levels.yaml", "config/levels_ramp.yaml"]
+    BRAINS = [("rl_hier", "RL (learned)"), ("utility", "Scripted"), ("squad", "Scripted + squad"),
+              ("tactical", "Scripted tactical"), ("random", "Random")]
+    levels_file = prev.get("levels_file", LEVEL_FILES[0])
+    brain_i = next((i for i, (k, _) in enumerate(BRAINS) if k == prev.get("brain")), 0)
+    levels = _load_levels(levels_file)
     selected = 0
-    level_index = 1
-    n_survivors = 6
-    speed = 1
-    show_cone = True
-    show_radar = True
+    level_index = min(prev.get("level_index", 1), len(levels) - 1)
+    n_survivors = prev.get("survivors", 6)
+    speed = prev.get("speed", 1)
+    show_cone = prev.get("show_cone", True)
+    show_radar = prev.get("show_radar", True)
     in_settings = False
     setting_sel = 0
-    setting_items = ["Level", "Survivors", "Speed", "Vision Cone", "Item Radar", "Back"]
+    setting_items = ["Brain", "Level set", "Level", "Survivors", "Speed", "Vision Cone", "Item Radar", "Back"]
 
     menu_items = ["Simulation", "Settings", "Quit"]
     done = False
@@ -150,6 +156,12 @@ def run_menu():
                         name = setting_items[setting_sel]
                         if name == "Back":
                             in_settings = False
+                        elif name == "Brain":
+                            brain_i = (brain_i + 1) % len(BRAINS)
+                        elif name == "Level set":
+                            levels_file = LEVEL_FILES[(LEVEL_FILES.index(levels_file) + 1) % len(LEVEL_FILES)]
+                            levels = _load_levels(levels_file)
+                            level_index = min(level_index, len(levels) - 1)
                         elif name == "Level":
                             level_index = (level_index + 1) % len(levels)
                         elif name == "Survivors":
@@ -162,7 +174,9 @@ def run_menu():
                             show_radar = not show_radar
                     elif ev.key == pygame.K_LEFT:
                         name = setting_items[setting_sel]
-                        if name == "Level":
+                        if name == "Brain":
+                            brain_i = (brain_i - 1) % len(BRAINS)
+                        elif name == "Level":
                             level_index = (level_index - 1) % len(levels)
                         elif name == "Survivors":
                             n_survivors = 8 if n_survivors <= 2 else n_survivors - 2
@@ -188,7 +202,7 @@ def run_menu():
                 screen.blit(btn, btn.get_rect(center=(W // 2, y)))
         else:
             # settings panel
-            panel = pygame.Surface((W - 120, 320), pygame.SRCALPHA)
+            panel = pygame.Surface((W - 120, 340), pygame.SRCALPHA)
             panel.fill((20, 24, 32, 220))
             pygame.draw.rect(panel, (80, 60, 50), panel.get_rect(), 2)
             screen.blit(panel, (60, 160))
@@ -197,7 +211,11 @@ def run_menu():
             screen.blit(header, header.get_rect(center=(W // 2, 185)))
 
             for i, name in enumerate(setting_items):
-                if name == "Level":
+                if name == "Brain":
+                    val = BRAINS[brain_i][1]
+                elif name == "Level set":
+                    val = "original" if levels_file == LEVEL_FILES[0] else "gentle ramp"
+                elif name == "Level":
                     val = levels[level_index].name
                 elif name == "Survivors":
                     val = str(n_survivors)
@@ -209,13 +227,13 @@ def run_menu():
                     val = "ON" if show_radar else "OFF"
                 else:
                     val = ""
-                y = 215 + i * 36
+                y = 212 + i * 34
                 sel = (i == setting_sel)
                 label_col = (255, 140, 100) if sel else (200, 200, 200)
                 label = font.render(f"  {name}", True, label_col)
                 value = font.render(f"{val}  ", True, (200, 200, 200) if not sel else (255, 200, 160))
                 screen.blit(label, (100, y))
-                screen.blit(value, (W - 200, y))
+                screen.blit(value, (W - 90 - value.get_width(), y))
 
         hint = font_sm.render("ARROWS navigate  |  ENTER select  |  ESC back", True, (150, 140, 130))
         screen.blit(hint, hint.get_rect(center=(W // 2, H - 24)))
@@ -225,13 +243,13 @@ def run_menu():
 
     pygame.quit()
     return action, {"level_index": level_index, "survivors": n_survivors,
-                    "speed": speed, "show_cone": show_cone, "show_radar": show_radar}
+                    "speed": speed, "show_cone": show_cone, "show_radar": show_radar,
+                    "levels_file": levels_file, "brain": BRAINS[brain_i][0]}
 
 
-def _load_levels():
+def _load_levels(rel="config/levels.yaml"):
     from zombie_sim.core.levels import load_levels
-    p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                     "config", "levels.yaml")
+    p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), rel)
     return load_levels(p)
 
 

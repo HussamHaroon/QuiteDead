@@ -9,7 +9,7 @@ import os
 import pygame
 
 TILE = 16
-HUD_H = 56
+HUD_H = 76
 SPEEDS = {pygame.K_1: 0.5, pygame.K_2: 1, pygame.K_3: 3, pygame.K_4: 8}
 
 COLORS = {
@@ -130,7 +130,19 @@ def _draw_noise(surface, world):
                              (x * TILE, y * TILE, TILE, TILE))
 
 
+BRAIN_CYCLE = ["utility", "squad", "tactical", "rl_hier", "random"]
+BRAIN_LABEL = {"utility": ("SCRIPTED (priority ladder)", (255, 200, 120)),
+               "squad": ("SCRIPTED + squad comms", (255, 200, 120)),
+               "tactical": ("SCRIPTED tactical", (255, 200, 120)),
+               "utility_ai": ("SCRIPTED utility-AI", (255, 200, 120)),
+               "rl_hier": ("RL (learned PPO policy)", (120, 235, 160)),
+               "random": ("RANDOM baseline", (200, 140, 140))}
+
+
 def run_viewer(cfg, screenshot=None, frames=240, level=None):
+    """Returns "menu" (user asked to go back) or "quit"."""
+    result = "quit"
+    end_buttons = []   # [(rect, action)] rebuilt every frame while the end banner is up
     if screenshot:
         os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
     pygame.init()
@@ -166,8 +178,10 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
     won = False
     win_reason = None  # "stock": the camp's supply quota was met
 
-    def _new_outbreak():
-        nonlocal world, background, selected, extinct, won, win_reason, scanned_events
+    def _new_outbreak(brain=None):
+        nonlocal world, background, selected, extinct, won, win_reason, scanned_events, cfg
+        if brain is not None:
+            cfg = type(cfg)(**{**cfg.to_dict(), "brain_survivors": brain})
         world = _make_world(cfg, level=level)
         background = _prerender_map(world, getattr(bank, "map_tiles", None))
         selected = next((s for s in world.survivors if s.alive), None)
@@ -186,9 +200,24 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
         for ev in pygame.event.get():
             if ev.type == pygame.QUIT:
                 done = True
+            elif ev.type == pygame.MOUSEBUTTONDOWN and ev.button == 1 and (extinct or won):
+                for rect, act in end_buttons:
+                    if rect.collidepoint(ev.pos):
+                        if act == "restart":
+                            _new_outbreak()
+                        elif act == "menu":
+                            result = "menu"; done = True
+                        else:
+                            done = True
             elif ev.type == pygame.KEYDOWN:
                 if ev.key == pygame.K_ESCAPE:
                     done = True
+                elif ev.key in (pygame.K_m, pygame.K_BACKSPACE):
+                    result = "menu"; done = True
+                elif ev.key == pygame.K_k:
+                    cur = cfg.brain_survivors
+                    nxt = BRAIN_CYCLE[(BRAIN_CYCLE.index(cur) + 1) % len(BRAIN_CYCLE)] if cur in BRAIN_CYCLE else BRAIN_CYCLE[0]
+                    _new_outbreak(brain=nxt)
                 elif ev.key == pygame.K_SPACE:
                     paused = not paused
                 elif ev.key in SPEEDS:
@@ -201,7 +230,7 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                     show_daynight = not show_daynight
                 elif ev.key == pygame.K_i:
                     show_items = not show_items
-                elif ev.key == pygame.K_r and (extinct or won):
+                elif ev.key == pygame.K_r:
                     _new_outbreak()
                 elif ev.key == pygame.K_TAB:
                     alive = [s for s in world.survivors if s.alive]
@@ -423,8 +452,8 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
             pygame.draw.circle(screen, (255, 255, 255), (int(px), int(py)), TILE, 1)
 
         if extinct or won:
-            box = pygame.Surface((m_px, 90), pygame.SRCALPHA)
-            box.fill((10, 10, 14, 215))
+            box = pygame.Surface((m_px, 140), pygame.SRCALPHA)
+            box.fill((10, 10, 14, 225))
             screen.blit(box, (0, m_px // 2 - 45))
             big = pygame.font.SysFont("consolas", 26, bold=True)
             if won and win_reason == "stock":
@@ -433,14 +462,30 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                                  True, (120, 235, 120))
                 alive = world.counts()[0]
                 t2 = font.render(f"stockpile {world.stockpile}/{level.win_stock}  -  "
-                                 f"{alive}/{cfg.n_survivors} alive  -  R = new outbreak, ESC = quit",
+                                 f"{alive}/{cfg.n_survivors} alive  -  new outbreak or back to menu",
                                  True, (220, 220, 220))
             else:
                 t1 = big.render("ALL SURVIVORS LOST", True, (235, 90, 90))
-                t2 = font.render("the outbreak is over  -  press R for a new outbreak, ESC to quit",
+                t2 = font.render("the outbreak is over",
                                  True, (220, 220, 220))
             screen.blit(t1, t1.get_rect(center=(m_px // 2, m_px // 2 - 14)))
             screen.blit(t2, t2.get_rect(center=(m_px // 2, m_px // 2 + 16)))
+            # clickable buttons (keys R / M / ESC do the same)
+            end_buttons.clear()
+            bf = pygame.font.SysFont("consolas", 16, bold=True)
+            labels = [("R  Restart", "restart", (60, 120, 70)), ("M  Menu", "menu", (60, 90, 140)),
+                      ("ESC  Quit", "quit", (130, 60, 60))]
+            bw, bh, gap = 150, 34, 14
+            x0 = m_px // 2 - (3 * bw + 2 * gap) // 2
+            mx, my = pygame.mouse.get_pos()
+            for i, (lab, act, col) in enumerate(labels):
+                r = pygame.Rect(x0 + i * (bw + gap), m_px // 2 + 42, bw, bh)
+                hot = r.collidepoint(mx, my)
+                pygame.draw.rect(screen, tuple(min(255, c + 40) for c in col) if hot else col, r, border_radius=6)
+                pygame.draw.rect(screen, (230, 230, 230), r, 1, border_radius=6)
+                tt = bf.render(lab, True, (240, 240, 240))
+                screen.blit(tt, tt.get_rect(center=r.center))
+                end_buttons.append((r, act))
 
         surv, inf, zomb = world.counts()
         loot = world.log.count("loot")
@@ -477,16 +522,21 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
                        f"HP {selected.hp:.0f}  HUN {selected.hunger:.0f}  "
                        f"THI {selected.thirst:.0f}")
             if selected.infected:
-                sel_txt += "  ⚠INFECTED"
+                sel_txt += "  [INFECTED]"
             st = font_stats.render(sel_txt, True, hp_col)
             screen.blit(st, (12, y2))
+
+        blab, bcol = BRAIN_LABEL.get(cfg.brain_survivors, (cfg.brain_survivors, (200, 200, 200)))
+        bt = font_stats.render(f"BRAIN: {blab}   [K] switch", True, bcol)
+        if not paused:
+            screen.blit(bt, (12, y2 + 22))
 
         # controls hint: only visible when paused (decluttered)
         if paused:
             help_txt = ("SPACE resume | 1=slow 2=norm 3=fast 4=turbo | TAB agent | "
-                        "V cone I radar N noise | ESC quit")
+                        "V cone I radar N noise | R restart K brain M menu | ESC quit")
             ht = pygame.font.SysFont("consolas", 12).render(help_txt, True, (150, 150, 160))
-            screen.blit(ht, ht.get_rect(center=(m_px // 2, y2 + 16)))
+            screen.blit(ht, ht.get_rect(center=(m_px // 2, y2 + 30)))
         pygame.display.flip()
 
         if screenshot and (frame >= frames or extinct or won):
@@ -497,3 +547,4 @@ def run_viewer(cfg, screenshot=None, frames=240, level=None):
     pygame.quit()
     if screenshot:
         print(f"screenshot -> {screenshot}")
+    return result
