@@ -21,7 +21,7 @@ class Survivor(Agent):
     __slots__ = ("hp", "hunger", "thirst", "inventory", "infected", "infection",
                  "fear", "memory_z", "memory_sup", "path", "path_i", "action",
                  "cooldown", "fleeing", "goal", "rl", "gun", "ammo", "state_label",
-                 "has_bat")
+                 "has_bat", "commit", "commit_until", "explored")
 
     def __init__(self, aid, x, y, hp=100.0):
         super().__init__(aid, "survivor", x, y)
@@ -30,7 +30,6 @@ class Survivor(Agent):
         self.gun = False
         self.ammo = 0
         self.has_bat = False
-        self.hp = hp
         self.hunger = 0.0
         self.thirst = 0.0
         # survivors start with nothing: whatever they carry home is deposited
@@ -48,6 +47,9 @@ class Survivor(Agent):
         self.fleeing = False
         self.goal = None
         self.state_label = "idle"   # what the brain is doing (viewer inspector)
+        self.commit = None          # utility_ai: chosen action name + commit horizon (anti-dithering)
+        self.commit_until = 0
+        self.explored = set()       # indices of buildings already searched (shared by squad comms)
 
 
 class Zombie(Agent):

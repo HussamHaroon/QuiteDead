@@ -15,7 +15,8 @@ class Config:
     reinforce_every_ticks: int = 0
     reinforce_count: int = 2
     # brains
-    brain_survivors: str = "utility"      # utility | random
+    brain_survivors: str = "utility"      # utility (= priority ladder) | squad | utility_ai | random
+    comms_radius: float = 0.0             # >0: survivors within this radius share memories each tick (squad brain sets it)
     brain_zombies: str = "fsm"            # fsm | random
     # population
     n_survivors: int = 60
@@ -59,7 +60,7 @@ class Config:
     zombie_vision_range: float = 9.0
     zombie_vision_fov_deg: float = 130.0
     zombie_detect_chance: float = 0.65
-    zombie_memory_ticks: int = 600        # zombies are RELENTLESS — long pursuit
+    zombie_memory_ticks: int = 100        # chase -> investigate after losing sight of prey this long
     zombie_hp: float = 100.0
     zombie_damage: float = 14.0
     zombie_attack_chance: float = 0.6

@@ -15,7 +15,6 @@ from ..perception import can_see
 
 PATROL_NEW_POINT_TICKS = 200   # pick a new patrol target this often
 SEARCH_TICKS = 120             # how long to search a noise spot before giving up
-LOST_PREY_TICKS = 100          # chase -> wander after losing sight this long
 
 
 def think(world, z):
@@ -45,7 +44,7 @@ def think(world, z):
         z.last_known = (visible.x, visible.y)
         z.last_seen = world.t
         z.target = None  # clear patrol target while chasing
-    elif z.state == "chase" and world.t - z.last_seen > LOST_PREY_TICKS:
+    elif z.state == "chase" and world.t - z.last_seen > cfg.zombie_memory_ticks:
         # lost sight of prey — go to last known position, then give up
         z.state = "investigate"
         z.target = z.last_known

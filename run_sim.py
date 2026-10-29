@@ -34,44 +34,38 @@ def main():
     ap.add_argument("--save-events", default=None, help="write event log JSONL here")
     ap.add_argument("--quiet", action="store_true")
     ap.add_argument("--menu", action="store_true", help="force the main menu")
+    ap.add_argument("--survivor-brain", default=None,
+                    choices=["utility", "squad", "tactical", "utility_ai", "rl_hier", "random"],
+                    help="survivor brain (utility = scripted ladder, rl_hier = learned PPO policy)")
     args = ap.parse_args()
 
-    # --- main menu (default when no --view/--ticks/--determinism args) ---
+    # --- main menu (default when no --view/--ticks/--determinism args); the viewer can
+    #     return to it (M / Menu button) without restarting the program ---
     if args.menu or (len(sys.argv) == 1):
         from render.menu import run_menu
-        action, menu_cfg = run_menu()
-        if action != "sim":
-            return
-        # apply menu selections
-        args.view = True
-        args.levels = args.levels or "config/levels.yaml"
-        args.level = menu_cfg["level_index"]
-        args.survivors = menu_cfg["survivors"]
-        args.speed = menu_cfg.get("speed", 1)
-        args.show_cone = menu_cfg.get("show_cone", True)
-        args.show_radar = menu_cfg.get("show_radar", True)
-
-    overrides = {"seed": args.seed, "n_survivors": args.survivors, "n_zombies": args.zombies}
-    if args.brain == "random":
-        overrides["brain_survivors"] = "random"
-        overrides["brain_zombies"] = "random"
-    cfg = Config.load(args.config, overrides)
-
-    level = None
-    if args.levels is not None and args.level is not None:
-        from zombie_sim.core.levels import load_levels
-        level = load_levels(args.levels)[args.level]
-        overrides = {"width": level.map.w, "height": level.map.h,
-                     "n_zombies": level.n_zombies,
-                     "n_supply_outdoor": 0, "supply_per_building": 0.0}
-        if level.reanimation_enabled is not None:
-            overrides["reanimation_enabled"] = level.reanimation_enabled
-        cfg = Config(**{**cfg.to_dict(), **overrides})
+        state = None
+        while True:
+            action, menu_cfg = run_menu(state)
+            if action != "sim":
+                return
+            state = menu_cfg
+            args.view = True
+            args.levels = menu_cfg["levels_file"]
+            args.level = menu_cfg["level_index"]
+            args.survivors = menu_cfg["survivors"]
+            args.survivor_brain = menu_cfg["brain"]
+            if _play(args) != "menu":
+                return
+        return
 
     if args.view:
-        from render.viewer import run_viewer
-        run_viewer(cfg, screenshot=args.screenshot, frames=args.frames, level=level)
+        if _play(args) == "menu":
+            args.menu = True
+            sys.argv = sys.argv[:1]
+            return main()
         return
+
+    cfg, level = _build(args)
 
     if args.determinism:
         # use the same merged cfg + level as the headless path, so the check
@@ -109,6 +103,39 @@ def main():
     if args.save_events:
         world.log.save(args.save_events)
         print(f"events -> {args.save_events}")
+
+
+
+def _build(args):
+    """Merge config file, CLI flags and the selected level into (cfg, level)."""
+    overrides = {"seed": args.seed, "n_survivors": args.survivors, "n_zombies": args.zombies}
+    if getattr(args, "survivor_brain", None):
+        overrides["brain_survivors"] = args.survivor_brain
+    if args.brain == "random":
+        overrides["brain_survivors"] = "random"
+        overrides["brain_zombies"] = "random"
+    cfg = Config.load(args.config, overrides)
+
+    level = None
+    if args.levels is not None and args.level is not None:
+        from zombie_sim.core.levels import load_levels
+        level = load_levels(args.levels)[args.level]
+        overrides = {"n_survivors": args.survivors or 6,   # levels are tuned for a squad of 6
+                     "width": level.map.w, "height": level.map.h,
+                     "n_zombies": level.n_zombies,
+                     "n_supply_outdoor": 0, "supply_per_building": 0.0}
+        if level.reanimation_enabled is not None:
+            overrides["reanimation_enabled"] = level.reanimation_enabled
+        cfg = Config(**{**cfg.to_dict(), **overrides})
+
+    return cfg, level
+
+
+def _play(args):
+    """Run the viewer. Returns "menu" (user pressed M / Menu) or "quit"."""
+    from render.viewer import run_viewer
+    cfg, level = _build(args)
+    return run_viewer(cfg, screenshot=args.screenshot, frames=args.frames, level=level)
 
 
 if __name__ == "__main__":

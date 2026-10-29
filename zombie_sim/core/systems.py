@@ -298,3 +298,30 @@ def spawn_zombie(world, x, y):
     world.zombies.append(z)
     world.agents_by_id[z.id] = z
     world.log.add(world.t, "turn", who=z.id, x=round(x, 1), y=round(y, 1))
+
+
+def comms_tick(world, radius):
+    """Squad communication: survivors within `radius` tiles (or both inside the safe
+    house) pool what they know - supply locations and recent zombie sightings.
+    This is the multi-agent part of the squad brains: knowledge is shared, not global."""
+    r2 = radius * radius
+    alive = [s for s in world.survivors if s.alive]
+    for i, a in enumerate(alive):
+        for b in alive[i + 1:]:
+            d2 = (a.x - b.x) ** 2 + (a.y - b.y) ** 2
+            if d2 > r2 and not (world.in_safehouse(a) and world.in_safehouse(b)):
+                continue
+            for sid, xy in list(b.memory_sup.items()):
+                if sid not in a.memory_sup and not world.supplies[sid].taken:
+                    a.memory_sup[sid] = xy
+            for sid, xy in list(a.memory_sup.items()):
+                if sid not in b.memory_sup and not world.supplies[sid].taken:
+                    b.memory_sup[sid] = xy
+            merged = a.explored | b.explored
+            a.explored, b.explored = set(merged), set(merged)
+            for zid, rec in list(b.memory_z.items()):
+                if zid not in a.memory_z or a.memory_z[zid][2] < rec[2]:
+                    a.memory_z[zid] = rec
+            for zid, rec in list(a.memory_z.items()):
+                if zid not in b.memory_z or b.memory_z[zid][2] < rec[2]:
+                    b.memory_z[zid] = rec

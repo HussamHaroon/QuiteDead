@@ -16,8 +16,8 @@ from .noise import NoiseField
 from .spatial import SpatialHash
 from .systems import (move_agents, loot_tick, deposit_tick, combat_tick,
                       survivor_attacks, infection_tick, needs_tick,
-                      reanimate_tick)
-from .brains import fsm, utility
+                      reanimate_tick, comms_tick)
+from .brains import fsm, utility, utility_ai, tactical
 from .brains import random_brain
 
 
@@ -43,6 +43,8 @@ class World:
         self.level = level
         self.game_map = level.map if level is not None else generate_map(self.rng, cfg.width, cfg.height)
         self.noise = NoiseField(cfg.width, cfg.height)
+        self._rand_s = random_brain.RandomSurvivorBrain()
+        self._rand_z = random_brain.RandomZombieBrain()
         self.spatial_s = SpatialHash()
         self.spatial_z = SpatialHash()
 
@@ -233,16 +235,25 @@ class World:
         self.spatial_z.rebuild(self.zombies)
         self.noise.decay(cfg.noise_decay)
 
+        if cfg.brain_survivors in ("squad", "utility_ai", "tactical"):
+            comms_tick(self, cfg.comms_radius or 12.0)
         for s in self.survivors:
             if s.alive and not s.rl:
                 if self.cfg.brain_survivors == "random":
-                    random_brain.RandomSurvivorBrain().think(self, s)
+                    self._rand_s.think(self, s)
+                elif self.cfg.brain_survivors == "utility_ai":
+                    utility_ai.think(self, s)
+                elif cfg.brain_survivors == "rl_hier":
+                    from rl import hbrain
+                    hbrain.think(self, s)
+                elif cfg.brain_survivors == "tactical":
+                    tactical.think(self, s)
                 else:
                     utility.think(self, s)
         for z in self.zombies:
             if z.alive and not z.rl:
                 if self.cfg.brain_zombies == "random":
-                    random_brain.RandomZombieBrain().think(self, z)
+                    self._rand_z.think(self, z)
                 else:
                     fsm.think(self, z)
 

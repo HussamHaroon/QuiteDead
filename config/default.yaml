@@ -1,32 +1,28 @@
-# QuiteDead default scenario — literature-anchored defaults, sweep-friendly
+# QuiteDead default scenario. GENERATED from the Config dataclass defaults
+# (python scripts/gen_default_yaml.py) so YAML and code can never drift apart.
+width: 64
+height: 64
 seed: 42
 reinforce_every_ticks: 0
 reinforce_count: 2
-width: 64
-height: 64
-
+brain_survivors: utility
+brain_zombies: fsm
 n_survivors: 60
 n_zombies: 3
 supply_per_building: 0.6
 n_supply_outdoor: 30
-
 vision_range: 8.0
 vision_fov_deg: 110.0
-
-survivor_walk: 0.10
+survivor_walk: 0.1
 survivor_run: 0.17
 survivor_hp: 100.0
-
-hunger_rate: 0.060
-thirst_rate: 0.080
+hunger_rate: 0.06
+thirst_rate: 0.08
 hunger_damage: 0.06
-
 fight_hp_threshold: 60.0
 danger_radius: 7.0
-
-# weapons (all looted): unarmed = shove only, bat = quiet melee, gun = loud ranged
 bat_damage: 50.0
-bat_chance: 0.70
+bat_chance: 0.7
 bat_cooldown: 12
 bat_noise: 15.0
 shove_cooldown: 12
@@ -41,24 +37,21 @@ ammo_per_crate: 8
 n_guns_spawn: 4
 n_ammo_spawn: 8
 n_bats_spawn: 4
-
-bite_infection_chance: 0.65
-incubation_ticks: 900
-reanimation_delay: 150
-reanimation_enabled: true
-
-zombie_walk: 0.055
-zombie_chase_speed: 0.115
+zombie_walk: 0.05
+zombie_chase_speed: 0.13
 zombie_vision_range: 9.0
 zombie_vision_fov_deg: 130.0
 zombie_detect_chance: 0.65
-zombie_memory_ticks: 600
+zombie_memory_ticks: 100
 zombie_hp: 100.0
 zombie_damage: 14.0
 zombie_attack_chance: 0.6
 zombie_attack_cooldown: 15
 zombie_hearing_radius: 14.0
-
+bite_infection_chance: 0.65
+incubation_ticks: 900
+reanimation_delay: 150
+reanimation_enabled: true
 noise_decay: 0.92
 noise_walk: 1.0
 noise_run: 12.0
