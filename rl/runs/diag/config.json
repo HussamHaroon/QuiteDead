@@ -1,0 +1,13 @@
+{
+  "updates": 16,
+  "envs": 4,
+  "steps_per_env": 96,
+  "survivors": 6,
+  "zombies": 10,
+  "size": 32,
+  "horizon": 1000,
+  "lr": 0.0003,
+  "seed": 1,
+  "run_dir": "runs/diag",
+  "ckpt_every": 50
+}

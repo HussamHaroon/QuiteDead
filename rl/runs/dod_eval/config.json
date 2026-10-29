@@ -1,0 +1,17 @@
+{
+  "updates": 3,
+  "envs": 4,
+  "steps_per_env": 96,
+  "survivors": 6,
+  "zombies": 2,
+  "size": 32,
+  "horizon": 600,
+  "lr": 0.0003,
+  "seed": 1,
+  "run_dir": "runs/dod_eval",
+  "ckpt_every": 50,
+  "levels": "../config/levels.yaml",
+  "init_from": null,
+  "eval_every": 2,
+  "eval_eps": 5
+}

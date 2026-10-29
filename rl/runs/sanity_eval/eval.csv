@@ -1,0 +1,11 @@
+update,level,surv_rate,quota,loot,ticks,stockpile
+2,Parking Lot,1.000,0,0,1500,0
+2,Suburb Blocks,1.000,0,2,1500,1
+2,Market Street,0.833,0,4,1500,1
+2,Hospital Compound,1.000,0,2,1500,1
+2,Downtown Siege,0.000,0,4,911,3
+4,Parking Lot,1.000,0,2,1500,2
+4,Suburb Blocks,1.000,0,3,1500,2
+4,Market Street,0.167,0,4,1500,1
+4,Hospital Compound,1.000,0,2,1500,1
+4,Downtown Siege,0.000,0,4,905,3

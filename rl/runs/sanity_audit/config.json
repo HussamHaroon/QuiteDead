@@ -1,0 +1,17 @@
+{
+  "updates": 4,
+  "envs": 4,
+  "steps_per_env": 96,
+  "survivors": 6,
+  "zombies": 4,
+  "size": 32,
+  "horizon": 4000,
+  "lr": 0.0003,
+  "seed": 1,
+  "run_dir": "runs/sanity_audit",
+  "ckpt_every": 50,
+  "levels": null,
+  "init_from": null,
+  "eval_every": 100,
+  "eval_eps": 5
+}

@@ -1,0 +1,15 @@
+{
+  "updates": 5,
+  "envs": 4,
+  "steps_per_env": 96,
+  "survivors": 6,
+  "zombies": 6,
+  "size": 32,
+  "horizon": 700,
+  "lr": 0.0003,
+  "seed": 1,
+  "run_dir": "runs/sanity_integration",
+  "ckpt_every": 50,
+  "levels": null,
+  "init_from": null
+}

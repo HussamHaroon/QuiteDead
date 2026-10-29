@@ -1,0 +1,14 @@
+{
+  "updates": 5,
+  "envs": 4,
+  "steps_per_env": 96,
+  "survivors": 6,
+  "zombies": 6,
+  "horizon": 1500,
+  "lr": 0.0003,
+  "seed": 2,
+  "levels": "../config/levels.yaml",
+  "level_index": 1,
+  "run_dir": "runs/zsanity",
+  "ckpt_every": 50
+}
