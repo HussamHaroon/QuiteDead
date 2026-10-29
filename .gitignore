@@ -25,6 +25,9 @@ venv/
 
 # ---- experiment outputs ----
 runs/
+!rl/runs/
+!rl/runs/hier_final/
+!rl/runs/hier_final/**
 logs/
 *.sqlite3
 *.csv.tmp
