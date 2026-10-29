@@ -1,0 +1,46 @@
+[scripted] seed 0: surv 0.00 quota 0 stock 2 ticks 1740
+[scripted] seed 1: surv 0.00 quota 0 stock 2 ticks 2072
+[scripted] seed 2: surv 0.00 quota 0 stock 2 ticks 1455
+[scripted] seed 3: surv 0.00 quota 0 stock 3 ticks 1387
+[scripted] seed 4: surv 0.00 quota 0 stock 2 ticks 1661
+[scripted] seed 5: surv 0.00 quota 0 stock 2 ticks 955
+[scripted] seed 6: surv 0.00 quota 0 stock 2 ticks 1440
+[scripted] seed 7: surv 0.00 quota 0 stock 2 ticks 2313
+[scripted] seed 8: surv 0.00 quota 0 stock 3 ticks 1164
+[scripted] seed 9: surv 0.00 quota 0 stock 2 ticks 2217
+[scripted] seed 10: surv 0.00 quota 0 stock 2 ticks 2917
+[scripted] seed 11: surv 0.00 quota 0 stock 2 ticks 1324
+[scripted] seed 12: surv 0.00 quota 0 stock 2 ticks 1044
+[scripted] seed 13: surv 0.00 quota 0 stock 2 ticks 2791
+[scripted] seed 14: surv 0.00 quota 0 stock 2 ticks 1285
+[scripted] seed 15: surv 0.00 quota 0 stock 3 ticks 1973
+[scripted] seed 16: surv 0.00 quota 0 stock 2 ticks 2127
+[scripted] seed 17: surv 0.00 quota 0 stock 2 ticks 979
+[scripted] seed 18: surv 0.00 quota 0 stock 2 ticks 2255
+[scripted] seed 19: surv 0.00 quota 0 stock 4 ticks 1329
+[random] seed 0: surv 0.00 quota 0 stock 1 ticks 2917
+[random] seed 1: surv 0.00 quota 0 stock 1 ticks 2917
+[random] seed 2: surv 0.00 quota 0 stock 1 ticks 2917
+[random] seed 3: surv 0.00 quota 0 stock 2 ticks 2917
+[random] seed 4: surv 0.00 quota 0 stock 2 ticks 2917
+[random] seed 5: surv 0.00 quota 0 stock 0 ticks 2917
+[random] seed 6: surv 0.00 quota 0 stock 1 ticks 2917
+[random] seed 7: surv 0.00 quota 0 stock 0 ticks 2917
+[random] seed 8: surv 0.00 quota 0 stock 1 ticks 2917
+[random] seed 9: surv 0.00 quota 0 stock 2 ticks 2917
+[random] seed 10: surv 0.00 quota 0 stock 2 ticks 2917
+[random] seed 11: surv 0.00 quota 0 stock 0 ticks 2917
+[random] seed 12: surv 0.00 quota 0 stock 2 ticks 2917
+[random] seed 13: surv 0.00 quota 0 stock 2 ticks 2917
+[random] seed 14: surv 0.00 quota 0 stock 1 ticks 2917
+[random] seed 15: surv 0.00 quota 0 stock 0 ticks 2917
+[random] seed 16: surv 0.00 quota 0 stock 2 ticks 2917
+[random] seed 17: surv 0.00 quota 0 stock 1 ticks 2917
+[random] seed 18: surv 0.00 quota 0 stock 2 ticks 2917
+[random] seed 19: surv 0.00 quota 0 stock 2 ticks 2917
+
+=== 20 seeds/brain on [Suburb Blocks]  (quota: Wilson 95% CI; survival: t 95% CI) ===
+  scripted                           quota-rate 0.00 [0.00, 0.16]  survival 0.00 +- 0.00
+  random                             quota-rate 0.00 [0.00, 0.16]  survival 0.00 +- 0.00
+  scripted vs random: Fisher(quota) p=1.0000 | Mann-Whitney(survival) p=1.0000
+table -> results/compare_scripted_random.csv | per-episode -> results/compare_scripted_random_episodes.csv

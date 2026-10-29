@@ -1,0 +1,7 @@
+level,brain,survival_mean,survival_ci95,quota_rate,quota_lo,quota_hi,episodes
+Training Grounds,scripted,1.0,0.0,1.0,0.839,1.0,20
+Training Grounds,random,0.0,0.0,0.0,0.0,0.161,20
+Parking Lot,scripted,0.508,0.211,0.6,0.387,0.781,20
+Parking Lot,random,0.0,0.0,0.0,0.0,0.161,20
+Suburb Blocks,scripted,0.0,0.0,0.0,0.0,0.161,20
+Suburb Blocks,random,0.0,0.0,0.0,0.0,0.161,20

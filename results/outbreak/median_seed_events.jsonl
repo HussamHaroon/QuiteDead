@@ -1,0 +1,118 @@
+{"t": 0, "type": "sim_start", "seed": 1967, "survivors": 20, "zombies": 14, "supplies": 48}
+{"t": 0, "type": "loot", "who": 58, "kind": "meds", "x": 21.5, "y": 32.5}
+{"t": 0, "type": "loot", "who": 63, "kind": "meds", "x": 23.5, "y": 32.5}
+{"t": 0, "type": "loot", "who": 49, "kind": "ammo", "x": 22.5, "y": 31.5}
+{"t": 0, "type": "deposit", "who": 58, "n": 1, "x": 21.5, "y": 32.5}
+{"t": 0, "type": "deposit", "who": 63, "n": 1, "x": 23.5, "y": 32.5}
+{"t": 97, "type": "bite", "zombie": 79, "who": 67, "x": 24.5, "y": 33.5}
+{"t": 177, "type": "bite", "zombie": 79, "who": 50, "x": 24.5, "y": 33.5}
+{"t": 282, "type": "bite", "zombie": 78, "who": 62, "x": 28.7, "y": 38.8}
+{"t": 374, "type": "loot", "who": 50, "kind": "water", "x": 28.5, "y": 34.5}
+{"t": 379, "type": "death", "who": 62, "kind": "survivor", "cause": "zombie", "x": 18.7, "y": 35.7, "heading": -2.4788393666507034}
+{"t": 379, "type": "killz", "attacker": 74, "who": 62}
+{"t": 391, "type": "death", "who": 67, "kind": "survivor", "cause": "zombie", "x": 21.7, "y": 36.0, "heading": 3.141592653589793}
+{"t": 391, "type": "killz", "attacker": 79, "who": 67}
+{"t": 467, "type": "loot", "who": 49, "kind": "water", "x": 33.5, "y": 33.5}
+{"t": 471, "type": "deposit", "who": 50, "n": 1, "x": 24.9, "y": 33.4}
+{"t": 529, "type": "turn", "who": 83, "x": 18.7, "y": 35.7}
+{"t": 541, "type": "turn", "who": 84, "x": 21.7, "y": 36.0}
+{"t": 547, "type": "loot", "who": 63, "kind": "food", "x": 31.5, "y": 43.5}
+{"t": 548, "type": "bite", "zombie": 79, "who": 61, "x": 25.8, "y": 31.3}
+{"t": 553, "type": "loot", "who": 63, "kind": "food", "x": 30.5, "y": 43.5}
+{"t": 564, "type": "bite", "zombie": 79, "who": 49, "x": 25.0, "y": 30.7}
+{"t": 573, "type": "bite", "zombie": 70, "who": 51, "x": 25.0, "y": 33.1}
+{"t": 579, "type": "loot", "who": 52, "kind": "food", "x": 26.5, "y": 20.5}
+{"t": 580, "type": "bite", "zombie": 79, "who": 59, "x": 25.0, "y": 30.6}
+{"t": 590, "type": "loot", "who": 60, "kind": "water", "x": 39.5, "y": 23.5}
+{"t": 594, "type": "bite", "zombie": 72, "who": 58, "x": 28.1, "y": 42.4}
+{"t": 596, "type": "bite", "zombie": 79, "who": 56, "x": 26.6, "y": 30.5}
+{"t": 637, "type": "bite", "zombie": 69, "who": 65, "x": 25.6, "y": 22.8}
+{"t": 640, "type": "deposit", "who": 49, "n": 1, "x": 24.9, "y": 33.2}
+{"t": 652, "type": "bite", "zombie": 82, "who": 54, "x": 25.1, "y": 31.5}
+{"t": 655, "type": "bite", "zombie": 79, "who": 63, "x": 27.7, "y": 36.5}
+{"t": 659, "type": "loot", "who": 60, "kind": "gun", "x": 32.5, "y": 23.5}
+{"t": 666, "type": "bite", "zombie": 72, "who": 66, "x": 21.8, "y": 46.0}
+{"t": 668, "type": "loot", "who": 60, "kind": "meds", "x": 32.5, "y": 22.5}
+{"t": 684, "type": "loot", "who": 60, "kind": "bat", "x": 31.5, "y": 21.5}
+{"t": 702, "type": "bite", "zombie": 73, "who": 52, "x": 17.5, "y": 19.6}
+{"t": 703, "type": "loot", "who": 60, "kind": "ammo", "x": 33.5, "y": 21.5}
+{"t": 713, "type": "bite", "zombie": 77, "who": 57, "x": 19.5, "y": 22.5}
+{"t": 727, "type": "loot", "who": 52, "kind": "water", "x": 17.5, "y": 23.5}
+{"t": 748, "type": "bite", "zombie": 69, "who": 55, "x": 33.4, "y": 32.5}
+{"t": 752, "type": "bite", "zombie": 84, "who": 53, "x": 26.9, "y": 30.5}
+{"t": 772, "type": "bite", "zombie": 81, "who": 68, "x": 33.8, "y": 35.6}
+{"t": 817, "type": "shot", "who": 60, "target": 69, "hit": true, "x": 32.5, "y": 26.6, "heading": 1.596635983340705}
+{"t": 818, "type": "death", "who": 66, "kind": "survivor", "cause": "zombie", "x": 19.0, "y": 33.1, "heading": 1.5707963267948966}
+{"t": 818, "type": "killz", "attacker": 72, "who": 66}
+{"t": 826, "type": "shot", "who": 60, "target": 69, "hit": false, "x": 32.5, "y": 26.6, "heading": 1.5966359833407122}
+{"t": 835, "type": "shot", "who": 60, "target": 69, "hit": false, "x": 32.5, "y": 26.6, "heading": 1.5966359833407164}
+{"t": 840, "type": "bite", "zombie": 69, "who": 60, "x": 32.5, "y": 26.6}
+{"t": 844, "type": "shot", "who": 60, "target": 69, "hit": true, "x": 32.5, "y": 26.6, "heading": 1.5966359833407093}
+{"t": 844, "type": "death", "who": 69, "kind": "zombie", "cause": "killed_by_survivor", "x": 32.5, "y": 26.8, "heading": -1.5449566702491049}
+{"t": 844, "type": "kill", "killer": 60, "who": 69}
+{"t": 853, "type": "shot", "who": 60, "target": 77, "hit": true, "x": 32.5, "y": 26.6, "heading": 2.4652792276492734}
+{"t": 860, "type": "bite", "zombie": 77, "who": 64, "x": 30.6, "y": 28.5}
+{"t": 862, "type": "shot", "who": 60, "target": 77, "hit": true, "x": 32.5, "y": 26.6, "heading": 2.4003824705728616}
+{"t": 862, "type": "death", "who": 77, "kind": "zombie", "cause": "killed_by_survivor", "x": 30.2, "y": 28.7, "heading": -0.5350982052633162}
+{"t": 862, "type": "kill", "killer": 60, "who": 77}
+{"t": 870, "type": "death", "who": 57, "kind": "survivor", "cause": "zombie", "x": 30.5, "y": 28.4, "heading": 1.9810299558830795}
+{"t": 870, "type": "killz", "attacker": 78, "who": 57}
+{"t": 871, "type": "shot", "who": 60, "target": 78, "hit": true, "x": 32.5, "y": 26.6, "heading": 2.3251809077215153}
+{"t": 880, "type": "shot", "who": 60, "target": 78, "hit": false, "x": 32.5, "y": 26.6, "heading": 2.466245122402131}
+{"t": 886, "type": "death", "who": 50, "kind": "survivor", "cause": "zombie", "x": 23.0, "y": 36.0, "heading": 3.141592653589793}
+{"t": 886, "type": "killz", "attacker": 81, "who": 50}
+{"t": 892, "type": "death", "who": 78, "kind": "zombie", "cause": "killed_by_survivor", "x": 32.0, "y": 26.8, "heading": -0.9617683659227574}
+{"t": 892, "type": "kill", "killer": 60, "who": 78}
+{"t": 915, "type": "death", "who": 68, "kind": "survivor", "cause": "zombie", "x": 30.0, "y": 41.0, "heading": -2.6782783636904455}
+{"t": 915, "type": "killz", "attacker": 84, "who": 68}
+{"t": 968, "type": "turn", "who": 85, "x": 19.0, "y": 33.1}
+{"t": 977, "type": "death", "who": 73, "kind": "zombie", "cause": "killed_by_survivor", "x": 31.1, "y": 26.4, "heading": -1.9571966630742126}
+{"t": 977, "type": "kill", "killer": 60, "who": 73}
+{"t": 1001, "type": "loot", "who": 58, "kind": "food", "x": 20.5, "y": 43.5}
+{"t": 1002, "type": "loot", "who": 52, "kind": "gun", "x": 17.5, "y": 17.5}
+{"t": 1003, "type": "death", "who": 64, "kind": "survivor", "cause": "zombie", "x": 32.1, "y": 32.7, "heading": 2.4231825165455145}
+{"t": 1003, "type": "killz", "attacker": 70, "who": 64}
+{"t": 1019, "type": "loot", "who": 60, "kind": "ammo", "x": 26.5, "y": 27.5}
+{"t": 1020, "type": "shot", "who": 60, "target": 83, "hit": true, "x": 27.0, "y": 27.2, "heading": -3.051178269524644}
+{"t": 1020, "type": "turn", "who": 86, "x": 30.5, "y": 28.4}
+{"t": 1022, "type": "death", "who": 59, "kind": "survivor", "cause": "zombie", "x": 15.5, "y": 29.9, "heading": 1.1894273455484075}
+{"t": 1022, "type": "killz", "attacker": 85, "who": 59}
+{"t": 1024, "type": "death", "who": 63, "kind": "survivor", "cause": "zombie", "x": 22.9, "y": 26.2, "heading": 2.392431415498532}
+{"t": 1024, "type": "killz", "attacker": 79, "who": 63}
+{"t": 1029, "type": "shot", "who": 60, "target": 76, "hit": true, "x": 27.0, "y": 27.2, "heading": 1.1883218121035688}
+{"t": 1036, "type": "turn", "who": 87, "x": 23.0, "y": 36.0}
+{"t": 1038, "type": "shot", "who": 60, "target": 82, "hit": true, "x": 27.0, "y": 27.2, "heading": 2.688733768353362}
+{"t": 1047, "type": "shot", "who": 60, "target": 76, "hit": true, "x": 27.0, "y": 27.2, "heading": 0.646581053151814}
+{"t": 1047, "type": "death", "who": 76, "kind": "zombie", "cause": "killed_by_survivor", "x": 27.1, "y": 27.2, "heading": 0.5608958235685398}
+{"t": 1047, "type": "kill", "killer": 60, "who": 76}
+{"t": 1048, "type": "loot", "who": 52, "kind": "water", "x": 22.5, "y": 17.5}
+{"t": 1055, "type": "death", "who": 60, "kind": "survivor", "cause": "zombie", "x": 27.0, "y": 27.2, "heading": -2.5582497444213907}
+{"t": 1055, "type": "killz", "attacker": 79, "who": 60}
+{"t": 1065, "type": "turn", "who": 88, "x": 30.0, "y": 41.0}
+{"t": 1079, "type": "death", "who": 53, "kind": "survivor", "cause": "zombie", "x": 23.1, "y": 29.9, "heading": 3.141592653589793}
+{"t": 1079, "type": "killz", "attacker": 72, "who": 53}
+{"t": 1093, "type": "death", "who": 58, "kind": "survivor", "cause": "zombie", "x": 21.1, "y": 39.2, "heading": -2.2348426659848553}
+{"t": 1093, "type": "killz", "attacker": 81, "who": 58}
+{"t": 1126, "type": "loot", "who": 52, "kind": "water", "x": 28.5, "y": 12.5}
+{"t": 1151, "type": "death", "who": 61, "kind": "survivor", "cause": "zombie", "x": 22.9, "y": 36.0, "heading": 0.0}
+{"t": 1151, "type": "killz", "attacker": 79, "who": 61}
+{"t": 1153, "type": "turn", "who": 89, "x": 32.1, "y": 32.7}
+{"t": 1172, "type": "turn", "who": 90, "x": 15.5, "y": 29.9}
+{"t": 1174, "type": "turn", "who": 91, "x": 22.9, "y": 26.2}
+{"t": 1182, "type": "death", "who": 55, "kind": "survivor", "cause": "zombie", "x": 19.6, "y": 36.1, "heading": 3.141592653589793}
+{"t": 1182, "type": "killz", "attacker": 74, "who": 55}
+{"t": 1205, "type": "turn", "who": 92, "x": 27.0, "y": 27.2}
+{"t": 1229, "type": "turn", "who": 93, "x": 23.1, "y": 29.9}
+{"t": 1236, "type": "death", "who": 52, "kind": "survivor", "cause": "zombie", "x": 29.6, "y": 27.0, "heading": 1.236006478959344}
+{"t": 1236, "type": "killz", "attacker": 92, "who": 52}
+{"t": 1243, "type": "turn", "who": 94, "x": 21.1, "y": 39.2}
+{"t": 1301, "type": "turn", "who": 95, "x": 22.9, "y": 36.0}
+{"t": 1332, "type": "turn", "who": 96, "x": 19.6, "y": 36.1}
+{"t": 1352, "type": "death", "who": 56, "kind": "survivor", "cause": "zombie", "x": 31.3, "y": 35.3, "heading": -2.0508401198203963}
+{"t": 1352, "type": "killz", "attacker": 71, "who": 56}
+{"t": 1386, "type": "turn", "who": 97, "x": 29.6, "y": 27.0}
+{"t": 1463, "type": "death", "who": 49, "kind": "survivor", "cause": "infection", "x": 18.6, "y": 21.4, "heading": 2.3561944901917835}
+{"t": 1472, "type": "death", "who": 51, "kind": "survivor", "cause": "infection", "x": 24.1, "y": 34.5, "heading": -3.1219542695838904}
+{"t": 1502, "type": "turn", "who": 98, "x": 31.3, "y": 35.3}
+{"t": 1536, "type": "death", "who": 65, "kind": "survivor", "cause": "infection", "x": 24.5, "y": 33.5, "heading": 0.5031181260805553}
+{"t": 1551, "type": "death", "who": 54, "kind": "survivor", "cause": "infection", "x": 24.3, "y": 33.4, "heading": -2.6183810726648655}

@@ -1,0 +1,43 @@
+collected 525232 samples in 101s; action histogram [123096  55470  22932  56170  75711  63591  26117  42990  58188    967]
+epoch 1 loss 1.549 acc 0.550
+epoch 2 loss 1.291 acc 0.590
+epoch 3 loss 1.201 acc 0.614
+epoch 4 loss 1.143 acc 0.629
+epoch 5 loss 1.101 acc 0.646
+epoch 6 loss 1.068 acc 0.652
+epoch 7 loss 1.042 acc 0.664
+epoch 8 loss 1.019 acc 0.669
+epoch 9 loss 1.000 acc 0.675
+epoch 10 loss 0.983 acc 0.681
+epoch 11 loss 0.969 acc 0.686
+epoch 12 loss 0.956 acc 0.690
+epoch 13 loss 0.945 acc 0.690
+epoch 14 loss 0.934 acc 0.694
+epoch 15 loss 0.925 acc 0.700
+epoch 16 loss 0.917 acc 0.700
+epoch 17 loss 0.909 acc 0.705
+epoch 18 loss 0.901 acc 0.706
+epoch 19 loss 0.895 acc 0.708
+epoch 20 loss 0.889 acc 0.711
+epoch 21 loss 0.883 acc 0.713
+epoch 22 loss 0.877 acc 0.712
+epoch 23 loss 0.872 acc 0.717
+epoch 24 loss 0.866 acc 0.720
+epoch 25 loss 0.862 acc 0.719
+epoch 26 loss 0.859 acc 0.722
+epoch 27 loss 0.854 acc 0.721
+epoch 28 loss 0.849 acc 0.725
+epoch 29 loss 0.846 acc 0.727
+epoch 30 loss 0.842 acc 0.726
+epoch 31 loss 0.839 acc 0.727
+epoch 32 loss 0.835 acc 0.725
+epoch 33 loss 0.832 acc 0.730
+epoch 34 loss 0.830 acc 0.730
+epoch 35 loss 0.826 acc 0.732
+epoch 36 loss 0.824 acc 0.733
+epoch 37 loss 0.821 acc 0.732
+epoch 38 loss 0.818 acc 0.734
+epoch 39 loss 0.815 acc 0.736
+epoch 40 loss 0.813 acc 0.734
+eval stochastic {'Training Grounds': 0.1, 'Warm-up Lot': 0.0, 'Parking Lot': 0.0, 'Suburb Blocks (Easy)': 0.0}
+eval deterministic {'Training Grounds': 0.0, 'Warm-up Lot': 0.0, 'Parking Lot': 0.0, 'Suburb Blocks (Easy)': 0.0}

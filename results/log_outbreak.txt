@@ -1,0 +1,11 @@
+{'seed': 0, 'ticks': 2917, 'survivors_left': 0, 'infections': 16, 'turns': 16, 'attack_rate': 0.8, 'R_eff': 0.5333333333333333, 'zombies_final': 30, 'death_zombie': 10, 'death_infection': 3, 'death_starvation': 7}
+{'seed': 1, 'ticks': 2300, 'survivors_left': 0, 'infections': 20, 'turns': 18, 'attack_rate': 1.0, 'R_eff': 0.625, 'zombies_final': 32, 'death_zombie': 11, 'death_infection': 7, 'death_starvation': 2}
+{'seed': 2, 'ticks': 1552, 'survivors_left': 0, 'infections': 20, 'turns': 16, 'attack_rate': 1.0, 'R_eff': 0.6666666666666666, 'zombies_final': 25, 'death_zombie': 16, 'death_infection': 4}
+{'seed': 3, 'ticks': 2917, 'survivors_left': 0, 'infections': 13, 'turns': 14, 'attack_rate': 0.65, 'R_eff': 0.4642857142857143, 'zombies_final': 28, 'death_zombie': 9, 'death_starvation': 11}
+{'seed': 4, 'ticks': 2450, 'survivors_left': 0, 'infections': 20, 'turns': 16, 'attack_rate': 1.0, 'R_eff': 0.6666666666666666, 'zombies_final': 30, 'death_zombie': 14, 'death_infection': 4, 'death_starvation': 2}
+{'seed': 5, 'ticks': 1566, 'survivors_left': 0, 'infections': 20, 'turns': 19, 'attack_rate': 1.0, 'R_eff': 0.6060606060606061, 'zombies_final': 33, 'death_zombie': 19, 'death_starvation': 1}
+{'seed': 6, 'ticks': 2917, 'survivors_left': 0, 'infections': 13, 'turns': 13, 'attack_rate': 0.65, 'R_eff': 0.48148148148148145, 'zombies_final': 27, 'death_zombie': 11, 'death_starvation': 8, 'death_infection': 1}
+{'seed': 7, 'ticks': 2684, 'survivors_left': 0, 'infections': 20, 'turns': 19, 'attack_rate': 1.0, 'R_eff': 0.6060606060606061, 'zombies_final': 33, 'death_infection': 6, 'death_zombie': 10, 'death_starvation': 4}
+{'seed': 8, 'ticks': 2192, 'survivors_left': 0, 'infections': 20, 'turns': 17, 'attack_rate': 1.0, 'R_eff': 0.6451612903225806, 'zombies_final': 31, 'death_infection': 4, 'death_zombie': 14, 'death_starvation': 2}
+{'seed': 9, 'ticks': 2917, 'survivors_left': 0, 'infections': 13, 'turns': 13, 'attack_rate': 0.65, 'R_eff': 0.48148148148148145, 'zombies_final': 27, 'death_zombie': 10, 'death_infection': 2, 'death_starvation': 8}
+median seed 2; attack rate 0.875+-0.120; R_eff 0.578+-0.057

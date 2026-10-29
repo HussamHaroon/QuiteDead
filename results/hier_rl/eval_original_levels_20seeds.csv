@@ -1,0 +1,12 @@
+stoch,Training Grounds,1.00,0.84,1.00,8.0,1.00
+stoch,Parking Lot,0.75,0.53,0.89,15.3,0.52
+stoch,Suburb Blocks,0.00,0.00,0.16,8.4,0.00
+stoch,Market Street,0.00,0.00,0.16,12.5,0.00
+stoch,Hospital Compound,0.00,0.00,0.16,5.1,0.00
+stoch,Downtown Siege,0.00,0.00,0.16,7.2,0.00
+det ,Training Grounds,1.00,0.84,1.00,8.0,1.00
+det ,Parking Lot,0.90,0.70,0.97,17.4,0.53
+det ,Suburb Blocks,0.00,0.00,0.16,7.4,0.00
+det ,Market Street,0.00,0.00,0.16,11.2,0.00
+det ,Hospital Compound,0.00,0.00,0.16,6.8,0.00
+det ,Downtown Siege,0.00,0.00,0.16,6.5,0.00

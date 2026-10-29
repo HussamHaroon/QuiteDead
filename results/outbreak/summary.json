@@ -1,0 +1,16 @@
+{
+  "initial_survivors": 20,
+  "initial_zombies": 14,
+  "unique_bitten": 20,
+  "attack_rate": 1.0,
+  "infections": 20,
+  "zombies_ever": 30,
+  "R_eff_infections_per_zombie": 0.667,
+  "bites_per_active_zombie": 2.0,
+  "deaths_by_cause": {
+    "zombie": 16,
+    "killed_by_survivor": 5,
+    "infection": 4
+  },
+  "ticks": 1551
+}
